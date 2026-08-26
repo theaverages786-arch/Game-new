@@ -16,6 +16,10 @@ export interface UserAccount {
   currency: CurrencyType;
   registeredAt: string;
   isLoggedIn: boolean;
+  role: 'user' | 'admin';
+  isFrozen?: boolean;
+  pin?: string;
+  password?: string;
   dailyStreak: number;
   lastCheckInDate?: string;
   totalDeposited: number;
@@ -48,6 +52,7 @@ export interface TransactionRecord {
   status: TransactionStatus;
   timestamp: number;
   note?: string;
+  referenceId?: string;
 }
 
 export interface ReferralTeamMember {
@@ -59,14 +64,26 @@ export interface ReferralTeamMember {
   joinDate: string;
 }
 
+export interface ForcedGameResults {
+  slots: 'random' | '777_jackpot' | 'diamond_win' | 'loss';
+  crash: 'random' | number;
+  wingo: 'random' | 'red' | 'green' | 'violet';
+  dragonTiger: 'random' | 'dragon' | 'tiger' | 'tie';
+}
+
 export interface AdminSettings {
-  rtpMode: 'fair' | 'high_win' | 'house_edge';
+  rtpMode: 'fair' | 'high_win' | 'house_edge' | 'custom';
   rtpPercentage: number;
   crashCrashLimitMin: number;
   crashCrashLimitMax: number;
   slotsJackpotPool: number;
   systemNotice: string;
   allowSimulatedWithdrawals: boolean;
+  maintenanceMode: boolean;
+  forcedResults: ForcedGameResults;
+  referralTier1Rate: number; // e.g. 30%
+  referralTier2Rate: number; // e.g. 20%
+  referralTier3Rate: number; // e.g. 10%
 }
 
 export interface ColorPredictionRound {
@@ -77,3 +94,4 @@ export interface ColorPredictionRound {
   resultSize?: 'big' | 'small';
   price?: number;
 }
+

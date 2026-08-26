@@ -56,11 +56,24 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
     setTigerCard(null);
     setWinner(null);
 
-    // Pick cards based on RTP
+    // Pick cards based on RTP & Forced Result
     let dIdx = Math.floor(Math.random() * CARDS.length);
     let tIdx = Math.floor(Math.random() * CARDS.length);
 
-    if (adminSettings.rtpMode === 'high_win') {
+    // Admin Forced Outcome Override
+    if (adminSettings.forcedResults?.dragonTiger && adminSettings.forcedResults.dragonTiger !== 'random') {
+      const forced = adminSettings.forcedResults.dragonTiger;
+      if (forced === 'dragon') {
+        dIdx = Math.min(CARDS.length - 1, 10);
+        tIdx = Math.max(0, 3);
+      } else if (forced === 'tiger') {
+        tIdx = Math.min(CARDS.length - 1, 10);
+        dIdx = Math.max(0, 3);
+      } else if (forced === 'tie') {
+        dIdx = 7;
+        tIdx = 7;
+      }
+    } else if (adminSettings.rtpMode === 'high_win') {
       if (side === 'dragon') {
         dIdx = Math.min(CARDS.length - 1, tIdx + 2);
       } else if (side === 'tiger') {

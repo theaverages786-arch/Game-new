@@ -65,6 +65,14 @@ export const CrashGame: React.FC<CrashGameProps> = ({
 
   // Determine Next Crash Point based on Admin RTP & Settings
   const calculateCrashPoint = () => {
+    // Check if Admin set a forced crash multiplier override
+    if (adminSettings.forcedResults?.crash && adminSettings.forcedResults.crash !== 'random') {
+      const forced = Number(adminSettings.forcedResults.crash);
+      if (!isNaN(forced) && forced > 1) {
+        return forced;
+      }
+    }
+
     const rand = Math.random();
     let point = 1.0;
 

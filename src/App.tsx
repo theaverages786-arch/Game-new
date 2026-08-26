@@ -3,6 +3,10 @@ import { Header } from './components/Header';
 import { Navbar, MainTab } from './components/Navbar';
 import { Marquee } from './components/Marquee';
 
+// Landing & Auth
+import { LandingPage } from './components/landing/LandingPage';
+import { AuthModal } from './components/auth/AuthModal';
+
 // Tabs
 import { LobbyTab } from './components/tabs/LobbyTab';
 import { ActivityTab } from './components/tabs/ActivityTab';
@@ -21,6 +25,8 @@ import { DragonTigerGame } from './components/games/DragonTigerGame';
 // Modals
 import { AdminModal } from './components/admin/AdminModal';
 import { DepositModal } from './components/modals/DepositModal';
+import { WithdrawModal } from './components/modals/WithdrawModal';
+import { AppDownloadModal } from './components/modals/AppDownloadModal';
 
 // Storage & Types
 import { 
@@ -45,8 +51,15 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<MainTab>('lobby');
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [isLandingView, setIsLandingView] = useState<boolean>(false);
+  
+  // Modals state
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  
   const [language, setLanguage] = useState<'en' | 'ur' | 'hi'>('en');
 
   // Sync state to local storage
@@ -116,6 +129,12 @@ export default function App() {
     }
   };
 
+  // Launch Game Handler (handles game selection from Landing Page or Lobby)
+  const handleLaunchGame = (gameId: string) => {
+    setIsLandingView(false);
+    setActiveGame(gameId);
+  };
+
   // Deposit Handler
   const handleDeposit = (amount: number, method: string, note?: string) => {
     setUser((prev) => ({
@@ -144,7 +163,9 @@ export default function App() {
     method: string,
     accountNumber: string,
     accountName: string
-  ) => {
+  ): boolean => {
+    if (amount > user.balance) return false;
+
     setUser((prev) => ({
       ...prev,
       balance: prev.balance - amount,
@@ -164,6 +185,7 @@ export default function App() {
     };
 
     setTransactions((prev) => [newTx, ...prev]);
+    return true;
   };
 
   // Agent Commission Claim
@@ -243,6 +265,53 @@ export default function App() {
       {/* Ticker Marquee */}
       <Marquee notice={adminSettings.systemNotice} />
 
+      {/* View Switcher Header Bar (Landing vs Lobby vs APK) */}
+      <div className="max-w-7xl w-full mx-auto px-2 sm:px-4 pt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-xl p-1 text-xs">
+          <button
+            onClick={() => {
+              setIsLandingView(false);
+              setActiveGame(null);
+            }}
+            className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+              !isLandingView && !activeGame
+                ? 'bg-amber-400 text-slate-950 shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🎮 Games Lobby
+          </button>
+          <button
+            onClick={() => {
+              setIsLandingView(true);
+              setActiveGame(null);
+            }}
+            className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+              isLandingView
+                ? 'bg-amber-400 text-slate-950 shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ✨ Landing Page
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setIsDownloadOpen(true)}
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>📲 APK App</span>
+          </button>
+          <button
+            onClick={() => setIsAuthOpen(true)}
+            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>👤 Switch User</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4">
         {activeGame ? (
@@ -297,6 +366,19 @@ export default function App() {
               />
             )}
           </div>
+        ) : isLandingView ? (
+          // Render Landing Page
+          <LandingPage
+            onPlayGame={handleLaunchGame}
+            onOpenLobby={() => {
+              setIsLandingView(false);
+              setActiveTab('lobby');
+            }}
+            onOpenDeposit={() => setIsDepositOpen(true)}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenAppDownload={() => setIsDownloadOpen(true)}
+            jackpotAmount={adminSettings.jackpotBalance || 7789420}
+          />
         ) : (
           // Render Active Tab
           <div>
@@ -351,7 +433,10 @@ export default function App() {
       {!activeGame && (
         <Navbar
           activeTab={activeTab}
-          onSelectTab={setActiveTab}
+          onSelectTab={(tab) => {
+            setIsLandingView(false);
+            setActiveTab(tab);
+          }}
           language={language}
         />
       )}
@@ -375,6 +460,29 @@ export default function App() {
         onClose={() => setIsDepositOpen(false)}
         onDeposit={handleDeposit}
       />
+
+      {/* Quick Withdraw Modal */}
+      <WithdrawModal
+        isOpen={isWithdrawOpen}
+        onClose={() => setIsWithdrawOpen(false)}
+        user={user}
+        onWithdraw={handleWithdraw}
+      />
+
+      {/* Auth & Switch User Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        currentUser={user}
+        onLoginSuccess={(loggedUser) => setUser(loggedUser)}
+      />
+
+      {/* Official APK & WebApp Download Modal */}
+      <AppDownloadModal
+        isOpen={isDownloadOpen}
+        onClose={() => setIsDownloadOpen(false)}
+      />
     </div>
   );
 }
+

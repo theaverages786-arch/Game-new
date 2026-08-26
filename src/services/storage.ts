@@ -3,6 +3,7 @@ import { UserAccount, TransactionRecord, BetRecord, AdminSettings, ReferralTeamM
 
 const STORAGE_KEYS = {
   USER: '777_user_account',
+  ALL_USERS: '777_all_users_list',
   TRANSACTIONS: '777_transactions',
   BETS: '777_bets',
   ADMIN_SETTINGS: '777_admin_settings',
@@ -18,27 +19,80 @@ export const getUrlReferralCode = (): string => {
   return '8khvdc';
 };
 
-const defaultUser: UserAccount = {
-  id: 'USR_777999_' + Math.floor(100000 + Math.random() * 900000),
-  phone: '0300' + Math.floor(1000000 + Math.random() * 9000000),
-  username: 'VIP_Player_' + Math.floor(1000 + Math.random() * 9000),
-  avatar: '👑',
-  balance: 2500, // starting demo test balance in PKR
-  unwithdrawnBalance: 2500,
-  vipLevel: 2,
-  vipExp: 1450,
-  referralCode: '8khvdc',
-  referredBy: '8khvdc',
-  currency: 'PKR',
-  registeredAt: new Date().toISOString(),
-  isLoggedIn: true,
-  dailyStreak: 3,
-  lastCheckInDate: '',
-  totalDeposited: 3000,
-  totalWithdrawn: 1200,
-  totalBetAmount: 8450,
-  totalWonAmount: 9150,
-};
+export const defaultPresetUsers: UserAccount[] = [
+  {
+    id: 'USR_777_ADMIN',
+    phone: '03001234777',
+    username: 'Master_Admin_777',
+    avatar: '🛡️',
+    balance: 150000,
+    unwithdrawnBalance: 150000,
+    vipLevel: 10,
+    vipExp: 88000,
+    referralCode: '8khvdc',
+    referredBy: '',
+    currency: 'PKR',
+    registeredAt: '2026-08-01T10:00:00.000Z',
+    isLoggedIn: true,
+    role: 'admin',
+    isFrozen: false,
+    pin: '777999',
+    password: 'password123',
+    dailyStreak: 7,
+    totalDeposited: 500000,
+    totalWithdrawn: 120000,
+    totalBetAmount: 980000,
+    totalWonAmount: 1150000,
+  },
+  {
+    id: 'USR_777_VIP5',
+    phone: '03049876543',
+    username: 'HighRoller_Ali',
+    avatar: '💎',
+    balance: 45000,
+    unwithdrawnBalance: 45000,
+    vipLevel: 5,
+    vipExp: 28500,
+    referralCode: 'vip999',
+    referredBy: '8khvdc',
+    currency: 'PKR',
+    registeredAt: '2026-08-10T14:30:00.000Z',
+    isLoggedIn: true,
+    role: 'user',
+    isFrozen: false,
+    pin: '123456',
+    password: 'password123',
+    dailyStreak: 5,
+    totalDeposited: 80000,
+    totalWithdrawn: 45000,
+    totalBetAmount: 185000,
+    totalWonAmount: 192000,
+  },
+  {
+    id: 'USR_777_DEMO',
+    phone: '03127654321',
+    username: 'LuckyPlayer_777',
+    avatar: '👑',
+    balance: 5000,
+    unwithdrawnBalance: 5000,
+    vipLevel: 2,
+    vipExp: 1850,
+    referralCode: '8khvdc',
+    referredBy: '8khvdc',
+    currency: 'PKR',
+    registeredAt: new Date().toISOString(),
+    isLoggedIn: true,
+    role: 'user',
+    isFrozen: false,
+    pin: '000000',
+    password: 'password123',
+    dailyStreak: 3,
+    totalDeposited: 6000,
+    totalWithdrawn: 2000,
+    totalBetAmount: 12400,
+    totalWonAmount: 13800,
+  },
+];
 
 const defaultAdminSettings: AdminSettings = {
   rtpMode: 'fair',
@@ -48,6 +102,16 @@ const defaultAdminSettings: AdminSettings = {
   slotsJackpotPool: 8887770,
   systemNotice: '🔥 Welcome to 777 Premier Portal! Daily 100% First Deposit Bonus & Instant Withdrawals active. Good luck!',
   allowSimulatedWithdrawals: true,
+  maintenanceMode: false,
+  forcedResults: {
+    slots: 'random',
+    crash: 'random',
+    wingo: 'random',
+    dragonTiger: 'random',
+  },
+  referralTier1Rate: 30,
+  referralTier2Rate: 20,
+  referralTier3Rate: 10,
 };
 
 const defaultInitialTransactions: TransactionRecord[] = [
@@ -115,18 +179,42 @@ const defaultTeam: ReferralTeamMember[] = [
   },
 ];
 
+export const loadAllUsers = (): UserAccount[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load all users', e);
+  }
+  saveAllUsers(defaultPresetUsers);
+  return defaultPresetUsers;
+};
+
+export const saveAllUsers = (users: UserAccount[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(users));
+  } catch (e) {
+    console.error('Failed to save all users', e);
+  }
+};
+
 export const loadUserData = (): UserAccount => {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...defaultUser, ...parsed };
+      return { ...defaultPresetUsers[2], ...parsed };
     }
   } catch (e) {
     console.error('Failed to load user data', e);
   }
   const ref = getUrlReferralCode();
-  const initial = { ...defaultUser, referralCode: ref || defaultUser.referralCode };
+  const initial = { ...defaultPresetUsers[2], referralCode: ref || defaultPresetUsers[2].referralCode };
   saveUserData(initial);
   return initial;
 };
@@ -134,6 +222,15 @@ export const loadUserData = (): UserAccount => {
 export const saveUserData = (user: UserAccount) => {
   try {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    // Also sync to all users list
+    const all = loadAllUsers();
+    const idx = all.findIndex((u) => u.id === user.id);
+    if (idx >= 0) {
+      all[idx] = user;
+    } else {
+      all.push(user);
+    }
+    saveAllUsers(all);
   } catch (e) {
     console.error('Failed to save user data', e);
   }
@@ -178,7 +275,14 @@ export const saveBets = (bets: BetRecord[]) => {
 export const loadAdminSettings = (): AdminSettings => {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ADMIN_SETTINGS);
-    if (raw) return { ...defaultAdminSettings, ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { 
+        ...defaultAdminSettings, 
+        ...parsed,
+        forcedResults: { ...defaultAdminSettings.forcedResults, ...(parsed.forcedResults || {}) }
+      };
+    }
   } catch (e) {
     console.error('Failed to load admin settings', e);
   }
@@ -215,3 +319,4 @@ export const triggerWinConfetti = () => {
     // fallback if canvas not available
   }
 };
+

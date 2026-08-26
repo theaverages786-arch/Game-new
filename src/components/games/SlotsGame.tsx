@@ -114,25 +114,47 @@ export const SlotsGame: React.FC<SlotsGameProps> = ({
     // Generate final outcome
     let finalSymbols: string[][] = [];
 
-    // Check if player hits high win outcome based on RTP
-    const hitRate = adminSettings.rtpMode === 'high_win' ? 0.6 : adminSettings.rtpMode === 'house_edge' ? 0.25 : 0.42;
-    const isWin = Math.random() < hitRate;
-
-    if (isWin) {
-      // Pick a winning symbol
-      const winSym = Math.random() < 0.15 ? '777' : Math.random() < 0.35 ? 'diamond' : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].id;
-      finalSymbols = Array(reelsCount)
-        .fill(0)
-        .map(() => [getRandomSymbol(), winSym, getRandomSymbol()]);
+    // Check if Admin Forced Specific Slots Result
+    if (adminSettings.forcedResults?.slots && adminSettings.forcedResults.slots !== 'random') {
+      const forced = adminSettings.forcedResults.slots;
+      if (forced === '777_jackpot') {
+        finalSymbols = Array(reelsCount)
+          .fill(0)
+          .map(() => [getRandomSymbol(), '777', getRandomSymbol()]);
+      } else if (forced === 'diamond_win') {
+        finalSymbols = Array(reelsCount)
+          .fill(0)
+          .map(() => [getRandomSymbol(), 'diamond', getRandomSymbol()]);
+      } else if (forced === 'loss') {
+        finalSymbols = Array(reelsCount)
+          .fill(0)
+          .map((_, i) => [
+            getRandomSymbol(),
+            SYMBOLS[(i * 2 + 1) % SYMBOLS.length].id,
+            getRandomSymbol(),
+          ]);
+      }
     } else {
-      // Guaranteed mixed result
-      finalSymbols = Array(reelsCount)
-        .fill(0)
-        .map((_, i) => [
-          getRandomSymbol(),
-          SYMBOLS[(i * 2 + 1) % SYMBOLS.length].id,
-          getRandomSymbol(),
-        ]);
+      // Standard RTP calculation
+      const hitRate = adminSettings.rtpMode === 'high_win' ? 0.6 : adminSettings.rtpMode === 'house_edge' ? 0.25 : 0.42;
+      const isWin = Math.random() < hitRate;
+
+      if (isWin) {
+        // Pick a winning symbol
+        const winSym = Math.random() < 0.15 ? '777' : Math.random() < 0.35 ? 'diamond' : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].id;
+        finalSymbols = Array(reelsCount)
+          .fill(0)
+          .map(() => [getRandomSymbol(), winSym, getRandomSymbol()]);
+      } else {
+        // Guaranteed mixed result
+        finalSymbols = Array(reelsCount)
+          .fill(0)
+          .map((_, i) => [
+            getRandomSymbol(),
+            SYMBOLS[(i * 2 + 1) % SYMBOLS.length].id,
+            getRandomSymbol(),
+          ]);
+      }
     }
 
     setReels(finalSymbols);

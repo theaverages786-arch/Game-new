@@ -78,10 +78,20 @@ export const ColorPredictionGame: React.FC<ColorPredictionGameProps> = ({
   }, [modeTime, selectedChips]);
 
   const resolveRound = () => {
-    // Determine random winning number 0-9 based on admin RTP
+    // Determine winning number 0-9 based on admin forced results & RTP
     let num = Math.floor(Math.random() * 10);
 
-    if (adminSettings.rtpMode === 'high_win' && selectedChips.length > 0) {
+    // Admin Forced Result Override
+    if (adminSettings.forcedResults?.wingo && adminSettings.forcedResults.wingo !== 'random') {
+      const forcedColor = adminSettings.forcedResults.wingo;
+      if (forcedColor === 'green') {
+        num = [1, 3, 7, 9][Math.floor(Math.random() * 4)];
+      } else if (forcedColor === 'red') {
+        num = [2, 4, 6, 8][Math.floor(Math.random() * 4)];
+      } else if (forcedColor === 'violet') {
+        num = [0, 5][Math.floor(Math.random() * 2)];
+      }
+    } else if (adminSettings.rtpMode === 'high_win' && selectedChips.length > 0) {
       // Favor user's bet if possible
       const firstNumBet = selectedChips.find((b) => b.type === 'number');
       if (firstNumBet && Math.random() < 0.5) {
