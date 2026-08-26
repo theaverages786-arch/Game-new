@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Navbar, MainTab } from './components/Navbar';
 import { Marquee } from './components/Marquee';
+import { DrawerMenu } from './components/DrawerMenu';
 
 // Landing & Auth
 import { LandingPage } from './components/landing/LandingPage';
@@ -11,8 +12,8 @@ import { AuthModal } from './components/auth/AuthModal';
 import { LobbyTab } from './components/tabs/LobbyTab';
 import { ActivityTab } from './components/tabs/ActivityTab';
 import { AgentTab } from './components/tabs/AgentTab';
-import { WalletTab } from './components/tabs/WalletTab';
 import { ProfileTab } from './components/tabs/ProfileTab';
+import { SupportTab } from './components/tabs/SupportTab';
 
 // Games
 import { SlotsGame } from './components/games/SlotsGame';
@@ -21,12 +22,32 @@ import { ColorPredictionGame } from './components/games/ColorPredictionGame';
 import { MinesGame } from './components/games/MinesGame';
 import { LuckyWheelGame } from './components/games/LuckyWheelGame';
 import { DragonTigerGame } from './components/games/DragonTigerGame';
+import { SuperAceGame } from './components/games/SuperAceGame';
+import { FortuneGemsGame } from './components/games/FortuneGemsGame';
+import { MoneyComingGame } from './components/games/MoneyComingGame';
+import { TeenPattiGame } from './components/games/TeenPattiGame';
+import { AndarBaharGame } from './components/games/AndarBaharGame';
+import { RouletteGame } from './components/games/RouletteGame';
+import { FishingGame } from './components/games/FishingGame';
+import { PlinkoGame } from './components/games/PlinkoGame';
+import { ChickenRoadGame } from './components/games/ChickenRoadGame';
+import { PiggyBankGame } from './components/games/PiggyBankGame';
+import { SportsbookGame } from './components/games/SportsbookGame';
+import { FortunePGSlotGame } from './components/games/FortunePGSlotGame';
+import { Crazy777Game } from './components/games/Crazy777Game';
+import { FortuneGarudaGame } from './components/games/FortuneGarudaGame';
+import { FCThreePigsGame } from './components/games/FCThreePigsGame';
+import { PPCleopatraGame } from './components/games/PPCleopatraGame';
+import { LiveCasinoGame } from './components/games/LiveCasinoGame';
+import { JILICardsGame } from './components/games/JILICardsGame';
+import { CaiShenFishingGame } from './components/games/CaiShenFishingGame';
 
 // Modals
 import { AdminModal } from './components/admin/AdminModal';
 import { DepositModal } from './components/modals/DepositModal';
 import { WithdrawModal } from './components/modals/WithdrawModal';
 import { AppDownloadModal } from './components/modals/AppDownloadModal';
+import { LiveChatModal } from './components/modals/LiveChatModal';
 
 // Storage & Types
 import { 
@@ -59,6 +80,8 @@ export default function App() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
   
   const [language, setLanguage] = useState<'en' | 'ur' | 'hi'>('en');
 
@@ -114,19 +137,75 @@ export default function App() {
     switch (gameId) {
       case 'slots_777':
         return 'Lucky 777 Slots';
+      case 'slots_super_ace':
+        return 'Super Ace 777';
+      case 'slots_fortune_gems':
+        return 'Fortune Gems 777';
+      case 'slots_money_coming':
+        return 'Money Coming 777';
       case 'crash_aviator':
         return 'Aviator Crash';
+      case 'arcade_plinko':
+        return 'Plinko Ball Drop';
       case 'color_wingo':
         return 'WinGo Color Lottery';
-      case 'mines_treasure':
-        return 'Mines Treasure';
-      case 'lucky_wheel':
-        return 'Lucky Spin Wheel';
       case 'dragon_tiger':
         return 'Dragon vs Tiger';
+      case 'cards_teen_patti':
+        return 'Teen Patti 3-Card';
+      case 'cards_andar_bahar':
+        return 'Andar Bahar Live';
+      case 'casino_roulette':
+        return 'European Roulette';
+      case 'fishing_ocean_king':
+        return 'Fish Hunter 777';
+      case 'mines_treasure':
+        return 'Mines Gold';
+      case 'lucky_wheel':
+        return 'Lucky Spin Wheel';
       default:
         return 'Arcade Game';
     }
+  };
+
+  const handleUpdateUserBalance = (newBalance: number) => {
+    setUser((prev) => ({
+      ...prev,
+      balance: Math.max(0, newBalance),
+    }));
+  };
+
+  const handleRecordGameBet = (
+    gameId: string,
+    title: string,
+    bet: number,
+    win: number,
+    mult: number
+  ) => {
+    setUser((prev) => {
+      const newVipExp = prev.vipExp + Math.round(bet * 0.1);
+      const newVipLevel = Math.min(10, Math.floor(newVipExp / 1500) + 1);
+      return {
+        ...prev,
+        vipExp: newVipExp,
+        vipLevel: Math.max(prev.vipLevel, newVipLevel),
+        totalBetAmount: prev.totalBetAmount + bet,
+        totalWonAmount: prev.totalWonAmount + win,
+      };
+    });
+
+    const newBet: BetRecord = {
+      id: 'BET_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      gameId,
+      gameTitle: title,
+      betAmount: bet,
+      winAmount: win,
+      multiplier: mult,
+      timestamp: Date.now(),
+      details: mult > 0 ? `Won x${mult}` : 'Lost',
+    };
+
+    setBets((prev) => [newBet, ...prev.slice(0, 49)]);
   };
 
   // Launch Game Handler (handles game selection from Landing Page or Lobby)
@@ -258,6 +337,8 @@ export default function App() {
         onOpenDeposit={() => setIsDepositOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onResetDemoBalance={handleResetDemoBalance}
+        onOpenDownload={() => setIsDownloadOpen(true)}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
         language={language}
         onLanguageChange={setLanguage}
       />
@@ -299,9 +380,9 @@ export default function App() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsDownloadOpen(true)}
-            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
           >
-            <span>📲 APK App</span>
+            <span>📲 APK Bonus Rs 999</span>
           </button>
           <button
             onClick={() => setIsAuthOpen(true)}
@@ -317,6 +398,155 @@ export default function App() {
         {activeGame ? (
           // Render Active Game
           <div>
+            {(activeGame === 'spribe_aviator' ||
+              activeGame === 'wg_aviator' ||
+              activeGame === '2j_aviator' ||
+              activeGame === 'wg_crash' ||
+              activeGame === 'crash_aviator' ||
+              activeGame === 'mg_flyx') && (
+              <CrashGame
+                balance={user.balance}
+                onBet={handleGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'inout_chicken_road' && (
+              <ChickenRoadGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'jdb_piggy_bank' && (
+              <PiggyBankGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {(activeGame === '9wickets_sports' ||
+              activeGame === 'saba_sports' ||
+              activeGame === 'wg_sports') && (
+              <SportsbookGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+                provider={
+                  activeGame === '9wickets_sports'
+                    ? '9wickets'
+                    : activeGame === 'saba_sports'
+                    ? 'saba'
+                    : 'wg'
+                }
+              />
+            )}
+            {activeGame === 'pg_slot' && (
+              <FortunePGSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'wg_crazy777' && (
+              <Crazy777Game
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'jili_fortune_garuda' && (
+              <FortuneGarudaGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'fc_slot' && (
+              <FCThreePigsGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'pp_slot' && (
+              <PPCleopatraGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {(activeGame === 'tg_live' ||
+              activeGame === 'pp_live' ||
+              activeGame === 'sexy_live') && (
+              <LiveCasinoGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+                dealerType={
+                  activeGame === 'tg_live'
+                    ? 'tg'
+                    : activeGame === 'pp_live'
+                    ? 'pp'
+                    : 'sexy'
+                }
+              />
+            )}
+            {(activeGame === 'jili_cards' || activeGame === 'kingmidas_cards') && (
+              <JILICardsGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+                gameType={activeGame === 'kingmidas_cards' ? 'kingmidas' : '7up'}
+              />
+            )}
+            {(activeGame === 'jili_happy_fishing' ||
+              activeGame === 'wg_caishen_fishing' ||
+              activeGame === 'ygr_fishing' ||
+              activeGame === 'fishing_ocean_king') && (
+              <CaiShenFishingGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+                theme={
+                  activeGame === 'jili_happy_fishing'
+                    ? 'happy'
+                    : activeGame === 'ygr_fishing'
+                    ? 'ygr'
+                    : 'caishen'
+                }
+              />
+            )}
+            {(activeGame === 'spribe_mines' || activeGame === 'mines_treasure') && (
+              <MinesGame
+                balance={user.balance}
+                onBet={handleGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
             {activeGame === 'slots_777' && (
               <SlotsGame
                 balance={user.balance}
@@ -325,10 +555,38 @@ export default function App() {
                 adminSettings={adminSettings}
               />
             )}
-            {activeGame === 'crash_aviator' && (
-              <CrashGame
-                balance={user.balance}
-                onBet={handleGameBet}
+            {activeGame === 'slots_super_ace' && (
+              <SuperAceGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_fortune_gems' && (
+              <FortuneGemsGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_money_coming' && (
+              <MoneyComingGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'arcade_plinko' && (
+              <PlinkoGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
                 onBack={() => setActiveGame(null)}
                 adminSettings={adminSettings}
               />
@@ -341,24 +599,43 @@ export default function App() {
                 adminSettings={adminSettings}
               />
             )}
-            {activeGame === 'mines_treasure' && (
-              <MinesGame
+            {activeGame === 'dragon_tiger' && (
+              <DragonTigerGame
                 balance={user.balance}
                 onBet={handleGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_teen_patti' && (
+              <TeenPattiGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_andar_bahar' && (
+              <AndarBaharGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'casino_roulette' && (
+              <RouletteGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
                 onBack={() => setActiveGame(null)}
                 adminSettings={adminSettings}
               />
             )}
             {activeGame === 'lucky_wheel' && (
               <LuckyWheelGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'dragon_tiger' && (
-              <DragonTigerGame
                 balance={user.balance}
                 onBet={handleGameBet}
                 onBack={() => setActiveGame(null)}
@@ -386,6 +663,9 @@ export default function App() {
               <LobbyTab
                 onSelectGame={(gameId) => setActiveGame(gameId)}
                 onOpenDeposit={() => setIsDepositOpen(true)}
+                onOpenSupport={() => {
+                  setActiveTab('support');
+                }}
                 language={language}
               />
             )}
@@ -394,6 +674,8 @@ export default function App() {
                 user={user}
                 onClaimDailyCheckIn={handleDailyCheckIn}
                 onClaimVipReward={() => {}}
+                onBack={() => setActiveTab('lobby')}
+                onOpenDeposit={() => setIsDepositOpen(true)}
                 language={language}
               />
             )}
@@ -402,15 +684,14 @@ export default function App() {
                 user={user}
                 team={team}
                 onClaimCommission={handleClaimCommission}
+                onBack={() => setActiveTab('lobby')}
                 language={language}
               />
             )}
-            {activeTab === 'wallet' && (
-              <WalletTab
-                user={user}
-                transactions={transactions}
-                onDeposit={handleDeposit}
-                onWithdraw={handleWithdraw}
+            {activeTab === 'support' && (
+              <SupportTab
+                onBack={() => setActiveTab('lobby')}
+                onOpenLiveChat={() => setIsLiveChatOpen(true)}
                 language={language}
               />
             )}
@@ -420,9 +701,16 @@ export default function App() {
                 bets={bets}
                 onOpenAdmin={() => setIsAdminOpen(true)}
                 onOpenDeposit={() => setIsDepositOpen(true)}
+                onOpenWithdraw={() => setIsWithdrawOpen(true)}
+                onOpenSupport={() => {
+                  setActiveTab('support');
+                }}
                 onResetDemoBalance={handleResetDemoBalance}
-                onOpenSupport={() => {}}
+                onSelectTab={(tab) => setActiveTab(tab)}
+                onOpenAuth={() => setIsAuthOpen(true)}
+                onBack={() => setActiveTab('lobby')}
                 language={language}
+                onLanguageChange={setLanguage}
               />
             )}
           </div>
@@ -440,6 +728,23 @@ export default function App() {
           language={language}
         />
       )}
+
+      {/* Sliding Navigation Left Drawer */}
+      <DrawerMenu
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        user={user}
+        onSelectTab={(tab) => {
+          setIsLandingView(false);
+          setActiveTab(tab);
+        }}
+        onOpenDeposit={() => setIsDepositOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenDownload={() => setIsDownloadOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        language={language}
+        onLanguageChange={setLanguage}
+      />
 
       {/* Admin Panel Modal */}
       <AdminModal
@@ -482,7 +787,13 @@ export default function App() {
         isOpen={isDownloadOpen}
         onClose={() => setIsDownloadOpen(false)}
       />
+
+      {/* 24/7 Live Customer Chat Modal */}
+      <LiveChatModal
+        isOpen={isLiveChatOpen}
+        onClose={() => setIsLiveChatOpen(false)}
+        userId={user.id}
+      />
     </div>
   );
 }
-

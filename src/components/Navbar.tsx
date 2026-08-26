@@ -1,14 +1,14 @@
 import React from 'react';
 import { 
-  Gamepad2, 
+  Home, 
   Gift, 
   Users2, 
-  WalletCards, 
+  Headphones, 
   UserCircle 
 } from 'lucide-react';
 import { soundService } from '../services/sound';
 
-export type MainTab = 'lobby' | 'activity' | 'agent' | 'wallet' | 'profile';
+export type MainTab = 'lobby' | 'activity' | 'agent' | 'support' | 'profile';
 
 interface NavbarProps {
   activeTab: MainTab;
@@ -20,38 +20,37 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, language
   const tabs = [
     {
       id: 'lobby' as MainTab,
-      labelEn: 'Lobby',
-      labelUr: 'گیمز لابی',
-      labelHi: 'गेम्स लॉबी',
-      icon: Gamepad2,
-      badge: 'HOT',
+      labelEn: 'Home',
+      labelUr: 'ہوم',
+      labelHi: 'होम',
+      icon: Home,
     },
     {
       id: 'activity' as MainTab,
-      labelEn: 'Activity',
-      labelUr: 'انعامات',
-      labelHi: 'इनाम',
+      labelEn: 'Promo',
+      labelUr: 'پروموشنز',
+      labelHi: 'प्रोमो',
       icon: Gift,
-      badge: 'FREE',
+      badge: '6',
     },
     {
       id: 'agent' as MainTab,
-      labelEn: 'Promotion',
-      labelUr: 'ایجنٹ ٹیم',
-      labelHi: 'एजेंट टीम',
+      labelEn: 'Invite',
+      labelUr: 'انوائٹ',
+      labelHi: 'इनवाइट',
       icon: Users2,
       highlight: true,
     },
     {
-      id: 'wallet' as MainTab,
-      labelEn: 'Wallet',
-      labelUr: 'والیٹ',
-      labelHi: 'वॉलेट',
-      icon: WalletCards,
+      id: 'support' as MainTab,
+      labelEn: 'Support',
+      labelUr: 'سپورٹ',
+      labelHi: 'सपोर्ट',
+      icon: Headphones,
     },
     {
       id: 'profile' as MainTab,
-      labelEn: 'Mine',
+      labelEn: 'Profile',
       labelUr: 'پروفائل',
       labelHi: 'प्रोफ़ाइल',
       icon: UserCircle,
@@ -59,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, language
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 border-t border-amber-500/20 backdrop-blur-xl px-2 py-1.5 shadow-2xl max-w-xl mx-auto md:max-w-none">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#081524]/98 border-t border-slate-700/80 backdrop-blur-xl px-2 py-1 shadow-2xl max-w-xl mx-auto md:max-w-none">
       <div className="max-w-md md:max-w-3xl mx-auto flex items-center justify-around">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -81,11 +80,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, language
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {/* Highlight Glow for Promotion / Center tabs */}
-              {tab.highlight && !isActive && (
-                <span className="absolute -top-1 w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-              )}
-
               <div className="relative">
                 <Icon
                   className={`w-5 h-5 transition-transform duration-200 ${
@@ -93,20 +87,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab, language
                   }`}
                 />
                 {tab.badge && (
-                  <span
-                    className={`absolute -top-2 -right-3 text-[8px] font-black px-1 rounded-full leading-tight uppercase shadow-sm ${
-                      tab.badge === 'HOT'
-                        ? 'bg-rose-600 text-white'
-                        : 'bg-emerald-500 text-slate-950 font-bold'
-                    }`}
-                  >
+                  <span className="absolute -top-1.5 -right-2.5 text-[9px] font-black px-1 rounded-full bg-rose-600 text-white leading-tight shadow">
                     {tab.badge}
                   </span>
                 )}
               </div>
 
               <span
-                className={`text-[10px] tracking-tight mt-1 whitespace-nowrap ${
+                className={`text-[10px] tracking-tight mt-0.5 whitespace-nowrap ${
                   isActive ? 'font-bold text-amber-300' : 'font-medium'
                 }`}
               >
