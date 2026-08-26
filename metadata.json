@@ -1,0 +1,6 @@
+{
+  "name": "777 Premier Gaming Hub & Arcade Portal",
+  "description": "Full-featured 777 online gaming portal simulator with slots, crash/aviator, color prediction, mines, lucky spin, recharge/withdraw wallet, affiliate referral system, and admin panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
