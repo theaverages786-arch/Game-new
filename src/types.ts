@@ -69,11 +69,23 @@ export interface ForcedGameResults {
   crash: 'random' | number;
   wingo: 'random' | 'red' | 'green' | 'violet';
   dragonTiger: 'random' | 'dragon' | 'tiger' | 'tie';
+  teenPatti?: 'random' | 'playerA' | 'playerB' | 'pairPlus' | 'loss';
+  roulette?: 'random' | 'red' | 'black' | 'zero' | 'loss';
+  mines?: 'random' | 'safe' | 'bomb';
+  baccarat?: 'random' | 'player' | 'banker' | 'tie';
+  sevenUpDown?: 'random' | 'down' | 'lucky7' | 'up';
+  zooRoulette?: 'random' | 'birds' | 'beasts' | 'shark';
+  carRoulette?: 'random' | 'ferrari' | 'lambo' | 'bmw' | 'porsche';
+  sicBo?: 'random' | 'small' | 'big' | 'triple';
+  hiLo?: 'random' | 'win' | 'loss';
 }
 
 export interface AdminSettings {
   rtpMode: 'fair' | 'high_win' | 'house_edge' | 'custom';
   rtpPercentage: number;
+  globalWinRate: number; // 0 to 100% win chance
+  masterOutcomeMode: 'normal' | 'always_win' | 'always_lose';
+  gameRtpOverrides: Record<string, number>; // gameId -> RTP % (e.g. { 'slots_super_ace': 98, 'crash_aviator': 95 })
   crashCrashLimitMin: number;
   crashCrashLimitMax: number;
   slotsJackpotPool: number;

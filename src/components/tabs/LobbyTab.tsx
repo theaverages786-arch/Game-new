@@ -783,27 +783,72 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
                 <span className="text-[8px] text-slate-400 block font-bold">FlyX™ MG</span>
               </div>
             </div>
+
+            {/* 7. Hi-Lo Master */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('hilo_game');
+              }}
+              className="bg-[#121c33] border border-slate-700/60 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🃏</div>
+              <div>
+                <span className="text-[10px] font-bold text-amber-300 block truncate">Hi-Lo Master</span>
+                <span className="text-[8px] text-slate-400 block font-bold">Higher or Lower</span>
+              </div>
+            </div>
+
+            {/* 8. Spribe Plinko */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('arcade_plinko');
+              }}
+              className="bg-[#121c33] border border-slate-700/60 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🔴</div>
+              <div>
+                <span className="text-[10px] font-bold text-amber-300 block truncate">Plinko Master</span>
+                <span className="text-[8px] text-slate-400 block font-bold">1000x Drops</span>
+              </div>
+            </div>
+
+            {/* 9. Lucky Wheel */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('lucky_wheel');
+              }}
+              className="bg-[#1e1030] border border-slate-700/60 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🎡</div>
+              <div>
+                <span className="text-[10px] font-bold text-pink-300 block truncate">Lucky Spin</span>
+                <span className="text-[8px] text-slate-400 block font-bold">Prize Wheel</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* 6. 🎰 SLOT SECTION (Screenshot 4) */}
+      {/* 6. 🎰 SLOT SECTION */}
       {/* ========================================================================= */}
       {(selectedCategory === 'all' || selectedCategory === 'slots') && (
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-base font-black text-amber-400">🎰 Slot</span>
+            <span className="text-base font-black text-amber-400">🎰 Slot Games</span>
             <button 
               onClick={() => setSelectedCategory('slots')}
               className="text-[11px] text-slate-400 hover:text-white cursor-pointer"
             >
-              &lt; All &gt;
+              &lt; All Slots &gt;
             </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-            {/* 1. JILI Slot */}
+            {/* 1. Super Ace */}
             <div
               onClick={() => {
                 soundService.playClick();
@@ -811,85 +856,175 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
               }}
               className="bg-[#0d1e33] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
             >
-              <div className="text-3xl my-auto">🎰 💎</div>
+              <div className="text-3xl my-auto">♠️ 👑</div>
               <div>
-                <span className="text-xs font-black text-amber-300 block">JILI Slot</span>
-                <span className="text-[9px] text-slate-400 block">Fortune Gems, Super Ace</span>
+                <span className="text-xs font-black text-amber-300 block">Super Ace</span>
+                <span className="text-[9px] text-slate-400 block">JILI Elimination Multipliers</span>
               </div>
             </div>
 
-            {/* 2. PG Slot */}
+            {/* 2. Fortune Gems */}
             <div
               onClick={() => {
                 soundService.playClick();
-                onSelectGame('pg_slot');
+                onSelectGame('slots_fortune_gems');
               }}
               className="bg-[#1e1030] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
             >
-              <div className="text-3xl my-auto">🐯 🐰</div>
+              <div className="text-3xl my-auto">💎 🔮</div>
               <div>
-                <span className="text-xs font-black text-purple-300 block">PG Slot</span>
-                <span className="text-[9px] text-slate-400 block">Fortune Tiger, Rabbit</span>
+                <span className="text-xs font-black text-purple-300 block">Fortune Gems</span>
+                <span className="text-[9px] text-slate-400 block">15x Extra Multiplier Reel</span>
               </div>
             </div>
 
-            {/* 3. WG Slot */}
+            {/* 3. Money Coming */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_money_coming');
+              }}
+              className="bg-[#24123b] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">💰 🎰</div>
+              <div>
+                <span className="text-xs font-black text-yellow-300 block">Money Coming</span>
+                <span className="text-[9px] text-slate-400 block">10,000x Lucky Wheel</span>
+              </div>
+            </div>
+
+            {/* 4. Roma Slots */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_roma');
+              }}
+              className="bg-[#2d1b06] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">⚔️ 🏛️</div>
+              <div>
+                <span className="text-xs font-black text-amber-300 block">Roma Slots</span>
+                <span className="text-[9px] text-slate-400 block">Colosseum Lion Bonus</span>
+              </div>
+            </div>
+
+            {/* 5. Fruit Party Classic */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_fruit_party');
+              }}
+              className="bg-[#2e1026] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🍓 🍉</div>
+              <div>
+                <span className="text-xs font-black text-pink-300 block">Fruit Party</span>
+                <span className="text-[9px] text-slate-400 block">256x Cluster Tumbling</span>
+              </div>
+            </div>
+
+            {/* 6. Aztec Gems Gold */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_aztec_gems');
+              }}
+              className="bg-[#301c05] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🗿 🪙</div>
+              <div>
+                <span className="text-xs font-black text-amber-300 block">Aztec Gems</span>
+                <span className="text-[9px] text-slate-400 block">Ancient Totem Multipliers</span>
+              </div>
+            </div>
+
+            {/* 7. Mega Win Slots */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_mega_win');
+              }}
+              className="bg-[#21092e] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">👑 ⚡</div>
+              <div>
+                <span className="text-xs font-black text-purple-300 block">Mega Win Slots</span>
+                <span className="text-[9px] text-slate-400 block">Triple Diamond 777</span>
+              </div>
+            </div>
+
+            {/* 8. Golden Empire */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_golden_empire');
+              }}
+              className="bg-[#241703] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">👑 ☀️</div>
+              <div>
+                <span className="text-xs font-black text-yellow-300 block">Golden Empire</span>
+                <span className="text-[9px] text-slate-400 block">32,400 Megaways</span>
+              </div>
+            </div>
+
+            {/* 9. Fortune Tree */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_fortune_tree');
+              }}
+              className="bg-[#240a0c] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🌳 🧧</div>
+              <div>
+                <span className="text-xs font-black text-red-300 block">Fortune Tree</span>
+                <span className="text-[9px] text-slate-400 block">88x Money Tree Wilds</span>
+              </div>
+            </div>
+
+            {/* 10. Boxing King Slots */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_boxing_king');
+              }}
+              className="bg-[#1f0b07] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🥊 🏆</div>
+              <div>
+                <span className="text-xs font-black text-orange-300 block">Boxing King</span>
+                <span className="text-[9px] text-slate-400 block">KO Free Spin Combos</span>
+              </div>
+            </div>
+
+            {/* 11. Crazy 777 */}
             <div
               onClick={() => {
                 soundService.playClick();
                 onSelectGame('wg_crazy777');
               }}
-              className="bg-[#24123b] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+              className="bg-[#2e1503] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
             >
-              <div className="text-3xl my-auto">🤠 🎰</div>
+              <div className="text-3xl my-auto">🎰 🔥</div>
               <div>
-                <span className="text-xs font-black text-white block">WG Slot</span>
-                <span className="text-[9px] text-slate-400 block">Wild Bounty Showdown</span>
+                <span className="text-xs font-black text-amber-300 block">Crazy 777</span>
+                <span className="text-[9px] text-slate-400 block">Classic 3-Reel Jackpot</span>
               </div>
             </div>
 
-            {/* 4. JDB FunTa Slot */}
+            {/* 12. 777 Classic Slots */}
             <div
               onClick={() => {
                 soundService.playClick();
-                onSelectGame('jdb_piggy_bank');
+                onSelectGame('slots_777');
               }}
-              className="bg-[#2d1b06] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+              className="bg-[#0b1b30] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
             >
-              <div className="text-3xl my-auto">🏺 🪙</div>
+              <div className="text-3xl my-auto">💎 🍒</div>
               <div>
-                <span className="text-xs font-black text-yellow-300 block">FunTa Slot</span>
-                <span className="text-[9px] text-slate-400 block">JDB Golden Treasure</span>
-              </div>
-            </div>
-
-            {/* 5. FC Slot (Three Little Pigs) */}
-            <div
-              onClick={() => {
-                soundService.playClick();
-                onSelectGame('fc_slot');
-              }}
-              className="bg-[#2e1026] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
-            >
-              <div className="text-3xl my-auto">🐷 🐺</div>
-              <div>
-                <span className="text-xs font-black text-pink-300 block">FC Slot</span>
-                <span className="text-[9px] text-slate-400 block">Three Little Pigs</span>
-              </div>
-            </div>
-
-            {/* 6. PP Slot (Pragmatic Play) */}
-            <div
-              onClick={() => {
-                soundService.playClick();
-                onSelectGame('pp_slot');
-              }}
-              className="bg-[#301c05] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
-            >
-              <div className="text-3xl my-auto">👸 🏛️</div>
-              <div>
-                <span className="text-xs font-black text-amber-300 block">PP Slot</span>
-                <span className="text-[9px] text-slate-400 block">Cleopatra Queen of Gold</span>
+                <span className="text-xs font-black text-sky-300 block">777 Classic</span>
+                <span className="text-[9px] text-slate-400 block">Las Vegas Retro 777</span>
               </div>
             </div>
           </div>
@@ -897,40 +1032,58 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 7. 🃏 CARDS SECTION (Screenshot 4) */}
+      {/* 7. 🃏 CARDS & MULTIPLAYER SECTION */}
       {/* ========================================================================= */}
       {(selectedCategory === 'all' || selectedCategory === 'cards') && (
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-base font-black text-emerald-400">🃏 Cards</span>
+            <span className="text-base font-black text-emerald-400">🃏 Card &amp; Multiplayer Games</span>
             <button 
               onClick={() => setSelectedCategory('cards')}
               className="text-[11px] text-slate-400 hover:text-white cursor-pointer"
             >
-              &lt; All &gt;
+              &lt; All Cards &gt;
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {/* 1. JILI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {/* 1. Teen Patti Classic */}
             <div
               onClick={() => {
                 soundService.playClick();
-                onSelectGame('jili_cards');
+                onSelectGame('cards_teen_patti');
               }}
               className="bg-gradient-to-r from-[#12382e] to-[#081e18] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
             >
               <div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-black text-emerald-300">JILI Cards</span>
-                  <span className="text-[10px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-bold">JILI</span>
+                  <span className="text-xs font-black text-emerald-300">Teen Patti</span>
+                  <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-bold">HOT</span>
                 </div>
-                <span className="text-[10px] text-slate-300 block mt-0.5">7Up 7Down, Sic Bo, Andar Bahar</span>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Classic 3 Patti Flash</span>
               </div>
-              <span className="text-3xl">🎲</span>
+              <span className="text-3xl">🎴</span>
             </div>
 
-            {/* 2. WG Cards */}
+            {/* 2. Teen Patti 20-20 */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('teen_patti_2020');
+              }}
+              className="bg-gradient-to-r from-[#1b4226] to-[#0a2414] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-emerald-300">Teen Patti 20-20</span>
+                  <span className="text-[9px] bg-amber-600 text-white px-1.5 py-0.2 rounded font-bold">LIVE</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Player A vs Player B</span>
+              </div>
+              <span className="text-3xl">⚡</span>
+            </div>
+
+            {/* 3. Dragon vs Tiger */}
             <div
               onClick={() => {
                 soundService.playClick();
@@ -940,30 +1093,238 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
             >
               <div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-black text-orange-300">WG Cards</span>
-                  <span className="text-[10px] bg-orange-700 text-white px-1.5 py-0.2 rounded font-bold">WG</span>
+                  <span className="text-xs font-black text-orange-300">Dragon vs Tiger</span>
+                  <span className="text-[9px] bg-orange-700 text-white px-1.5 py-0.2 rounded font-bold">FAST</span>
                 </div>
-                <span className="text-[10px] text-slate-300 block mt-0.5">Dragon Tiger Lightning Clash</span>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Single Card War 8x Tie</span>
               </div>
               <span className="text-3xl">🐉</span>
             </div>
 
-            {/* 3. KingMidas Cards */}
+            {/* 4. Andar Bahar */}
             <div
               onClick={() => {
                 soundService.playClick();
-                onSelectGame('kingmidas_cards');
+                onSelectGame('cards_andar_bahar');
+              }}
+              className="bg-gradient-to-r from-[#172d42] to-[#071724] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-blue-300">Andar Bahar</span>
+                  <span className="text-[9px] bg-blue-700 text-white px-1.5 py-0.2 rounded font-bold">DESI</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Joker Match Spot Bet</span>
+              </div>
+              <span className="text-3xl">🃏</span>
+            </div>
+
+            {/* 5. Rummy */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('cards_rummy');
+              }}
+              className="bg-gradient-to-r from-[#2c133b] to-[#12061a] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-purple-300">Indian Rummy</span>
+                  <span className="text-[9px] bg-purple-700 text-white px-1.5 py-0.2 rounded font-bold">13 CARD</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Sequences &amp; Sets</span>
+              </div>
+              <span className="text-3xl">🂡</span>
+            </div>
+
+            {/* 6. Texas Hold'em Poker */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('cards_texas_holdem');
+              }}
+              className="bg-gradient-to-r from-[#132c38] to-[#05131a] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-cyan-300">Texas Hold'em</span>
+                  <span className="text-[9px] bg-cyan-700 text-white px-1.5 py-0.2 rounded font-bold">POKER</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Flop, Turn, River</span>
+              </div>
+              <span className="text-3xl">♠️</span>
+            </div>
+
+            {/* 7. Blackjack */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('cards_blackjack');
+              }}
+              className="bg-gradient-to-r from-[#102e1c] to-[#04140a] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-emerald-300">Blackjack 21</span>
+                  <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-bold">3:2 PAY</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Hit, Stand, Double</span>
+              </div>
+              <span className="text-3xl">🎯</span>
+            </div>
+
+            {/* 8. Baccarat */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('cards_baccarat');
               }}
               className="bg-gradient-to-r from-[#3b0d2d] to-[#1f0517] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
             >
               <div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-black text-pink-300">KingMidas Cards</span>
-                  <span className="text-[10px] bg-pink-700 text-white px-1.5 py-0.2 rounded font-bold">KM</span>
+                  <span className="text-xs font-black text-pink-300">Baccarat VIP</span>
+                  <span className="text-[9px] bg-pink-700 text-white px-1.5 py-0.2 rounded font-bold">MACAU</span>
                 </div>
-                <span className="text-[10px] text-slate-300 block mt-0.5">Bunny Dealer Poker &amp; Baccarat</span>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Player, Banker, 8x Tie</span>
               </div>
-              <span className="text-3xl">🐰</span>
+              <span className="text-3xl">👑</span>
+            </div>
+
+            {/* 9. Ludo */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('arcade_ludo');
+              }}
+              className="bg-gradient-to-r from-[#38260b] to-[#1c1203] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-amber-300">Ludo Supreme</span>
+                  <span className="text-[9px] bg-amber-600 text-white px-1.5 py-0.2 rounded font-bold">MULTIPLAYER</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Quick &amp; Classic Board</span>
+              </div>
+              <span className="text-3xl">🎲</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7.5. 🎯 TABLE, ROULETTE & DICE SECTION */}
+      {/* ========================================================================= */}
+      {(selectedCategory === 'all' || selectedCategory === 'cards' || selectedCategory === 'mini') && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-base font-black text-amber-400">🎲 Table, Roulette &amp; Dice Games</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            {/* 1. European Roulette */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('casino_roulette');
+              }}
+              className="bg-[#172338] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🎡</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">European Roulette</span>
+                <span className="text-[8px] text-amber-300 block font-bold">36x Single Zero</span>
+              </div>
+            </div>
+
+            {/* 2. Zoo Roulette */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('zoo_roulette');
+              }}
+              className="bg-[#071d15] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🦁</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">Zoo Roulette</span>
+                <span className="text-[8px] text-emerald-300 block font-bold">Birds vs Beasts 24x</span>
+              </div>
+            </div>
+
+            {/* 3. Car Roulette */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('car_roulette');
+              }}
+              className="bg-[#091524] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🏎️</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">Car Roulette</span>
+                <span className="text-[8px] text-blue-300 block font-bold">Ferrari 40x Supercar</span>
+              </div>
+            </div>
+
+            {/* 4. 7 Up Down */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('seven_up_down');
+              }}
+              className="bg-[#170c02] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🎲</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">7 Up 7 Down</span>
+                <span className="text-[8px] text-amber-300 block font-bold">5.8x Lucky 7</span>
+              </div>
+            </div>
+
+            {/* 5. Dice Master 99x */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('dice_master');
+              }}
+              className="bg-[#071321] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🎯</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">Dice Master</span>
+                <span className="text-[8px] text-cyan-300 block font-bold">Over/Under 99x</span>
+              </div>
+            </div>
+
+            {/* 6. Red vs Black */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('red_vs_black');
+              }}
+              className="bg-[#1a080a] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">⚔️</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">Red vs Black</span>
+                <span className="text-[8px] text-rose-300 block font-bold">10x Lucky Strike</span>
+              </div>
+            </div>
+
+            {/* 7. Macau Sic Bo */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('sic_bo');
+              }}
+              className="bg-[#170505] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">🎲</div>
+              <div>
+                <span className="text-[10px] font-bold text-white block truncate">Macau Sic Bo</span>
+                <span className="text-[8px] text-red-300 block font-bold">180x Triples</span>
+              </div>
             </div>
           </div>
         </div>

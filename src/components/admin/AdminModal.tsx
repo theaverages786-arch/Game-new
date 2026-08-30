@@ -276,61 +276,190 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         {/* TAB 2: GAME RTP & RESULT FORCER (RIGGING TOOL) */}
         {activeTab === 'odds' && (
           <div className="space-y-4 text-xs">
-            {/* Global RTP Mode */}
-            <div className="space-y-2">
-              <span className="font-bold text-slate-300 block uppercase">
-                Return to Player (RTP) Mode:
-              </span>
+            {/* Master Outcome Mode Switch */}
+            <div className="bg-[#121a30] border-2 border-amber-500/60 rounded-2xl p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-black text-amber-300 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  Master Casino Outcome Mode (Instant Override)
+                </span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-black border border-amber-500/40">
+                  {settings.masterOutcomeMode === 'always_win' ? '🔥 100% PLAYER WIN' : settings.masterOutcomeMode === 'always_lose' ? '💀 100% HOUSE WIN' : '⚖️ NORMAL RTP'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Override all games at once. Set forced win, forced loss, or standard probability mode:
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => setSettings({ ...settings, rtpMode: 'fair', rtpPercentage: 96.5 })}
-                  className={`p-3 rounded-2xl border text-left cursor-pointer transition ${
-                    settings.rtpMode === 'fair'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold'
-                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                  onClick={() => {
+                    soundService.playClick();
+                    setSettings({ ...settings, masterOutcomeMode: 'normal' });
+                  }}
+                  className={`p-2.5 rounded-xl border text-center font-black transition cursor-pointer ${
+                    settings.masterOutcomeMode === 'normal'
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-md'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <div className="text-xs font-black">Standard Fair (96.5%)</div>
-                  <div className="text-[10px] text-slate-400 mt-1">GLI Standard Algorithm</div>
+                  ⚖️ Normal RNG
                 </button>
-
                 <button
-                  onClick={() => setSettings({ ...settings, rtpMode: 'high_win', rtpPercentage: 120 })}
-                  className={`p-3 rounded-2xl border text-left cursor-pointer transition ${
-                    settings.rtpMode === 'high_win'
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold'
-                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                  onClick={() => {
+                    soundService.playClick();
+                    setSettings({ ...settings, masterOutcomeMode: 'always_win' });
+                  }}
+                  className={`p-2.5 rounded-xl border text-center font-black transition cursor-pointer ${
+                    settings.masterOutcomeMode === 'always_win'
+                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <div className="text-xs font-black">High Win / Promo (120%)</div>
-                  <div className="text-[10px] text-slate-400 mt-1">Boosts win frequency</div>
+                  🌟 Force Win (100%)
                 </button>
-
                 <button
-                  onClick={() => setSettings({ ...settings, rtpMode: 'house_edge', rtpPercentage: 85 })}
-                  className={`p-3 rounded-2xl border text-left cursor-pointer transition ${
-                    settings.rtpMode === 'house_edge'
-                      ? 'bg-rose-500/20 border-rose-400 text-rose-300 font-bold'
-                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                  onClick={() => {
+                    soundService.playClick();
+                    setSettings({ ...settings, masterOutcomeMode: 'always_lose' });
+                  }}
+                  className={`p-2.5 rounded-xl border text-center font-black transition cursor-pointer ${
+                    settings.masterOutcomeMode === 'always_lose'
+                      ? 'bg-rose-600 text-white border-rose-400 shadow-md'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <div className="text-xs font-black">House Edge (85%)</div>
-                  <div className="text-[10px] text-slate-400 mt-1">Max casino retention</div>
+                  ❌ Force Loss (0%)
                 </button>
               </div>
             </div>
 
-            {/* GAME RIGGING / RESULT FORCER SECTION */}
+            {/* Global Win / Loss Percentage Sliders */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold text-white text-xs uppercase tracking-wide">
+                  Global Win &amp; Loss Percentage Controller
+                </span>
+                <span className="font-mono text-amber-300 font-bold text-sm bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                  Player Win: {settings.globalWinRate || 65}% | House Retention: {100 - (settings.globalWinRate || 65)}%
+                </span>
+              </div>
+
+              <div>
+                <input
+                  type="range"
+                  min="5"
+                  max="98"
+                  value={settings.globalWinRate || 65}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setSettings({ ...settings, globalWinRate: val, rtpPercentage: val + 20 });
+                  }}
+                  className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
+                  <span>5% (Extreme Casino Edge)</span>
+                  <span>50% (50/50 Fair)</span>
+                  <span>75% (Player Favor)</span>
+                  <span>98% (Jackpot Streak)</span>
+                </div>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {[
+                  { label: '💰 Tight (30% Win)', win: 30, rtp: 80 },
+                  { label: '⚖️ Standard (50% Win)', win: 50, rtp: 96 },
+                  { label: '🔥 Boosted (75% Win)', win: 75, rtp: 110 },
+                  { label: '👑 Mega Luck (95% Win)', win: 95, rtp: 130 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      soundService.playClick();
+                      setSettings({ ...settings, globalWinRate: preset.win, rtpPercentage: preset.rtp });
+                    }}
+                    className={`p-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer text-center ${
+                      (settings.globalWinRate || 65) === preset.win
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
+                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Individual Game RTP & Loss Override Sliders */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <span className="font-bold text-amber-300 block text-xs uppercase">
+                🎮 Individual Game RTP &amp; Profit Margins (%):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {[
+                  { id: 'slots_super_ace', name: 'Super Ace 777 Slots', def: 97 },
+                  { id: 'slots_fortune_gems', name: 'Fortune Gems Slots', def: 96 },
+                  { id: 'slots_money_coming', name: 'Money Coming Slots', def: 96 },
+                  { id: 'slots_roma', name: 'Roma Classic Slots', def: 95 },
+                  { id: 'crash_aviator', name: 'Aviator Flight Crash', def: 96 },
+                  { id: 'cards_teen_patti', name: 'Teen Patti 3-Card', def: 95 },
+                  { id: 'teen_patti_2020', name: 'Teen Patti 20-20', def: 95 },
+                  { id: 'dragon_tiger', name: 'Dragon vs Tiger Clash', def: 96 },
+                  { id: 'cards_andar_bahar', name: 'Andar Bahar Live', def: 95 },
+                  { id: 'cards_rummy', name: 'Indian Rummy 13-Card', def: 94 },
+                  { id: 'cards_baccarat', name: 'VIP Baccarat Macau', def: 98 },
+                  { id: 'cards_blackjack', name: 'Blackjack 21 Classic', def: 98 },
+                  { id: 'casino_roulette', name: 'European Roulette 36x', def: 97 },
+                  { id: 'zoo_roulette', name: 'Zoo Roulette 24x', def: 95 },
+                  { id: 'car_roulette', name: 'Car Roulette 40x', def: 95 },
+                  { id: 'seven_up_down', name: '7 Up 7 Down Dice', def: 96 },
+                  { id: 'mines_treasure', name: 'Mines Gold Field', def: 95 },
+                  { id: 'color_wingo', name: 'WinGo Color Lottery', def: 95 },
+                  { id: 'sic_bo', name: 'Macau Sic Bo 180x', def: 96 },
+                  { id: 'hilo_game', name: 'Hi-Lo Master Card', def: 96 },
+                  { id: 'arcade_plinko', name: 'Plinko 1000x Drops', def: 96 },
+                ].map((g) => {
+                  const currentRtp = settings.gameRtpOverrides?.[g.id] ?? g.def;
+                  return (
+                    <div key={g.id} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-bold text-white truncate max-w-[130px]">{g.name}</span>
+                        <span className="font-mono font-black text-amber-300">{currentRtp}% RTP</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="50"
+                        max="140"
+                        value={currentRtp}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          setSettings({
+                            ...settings,
+                            gameRtpOverrides: {
+                              ...(settings.gameRtpOverrides || {}),
+                              [g.id]: val,
+                            },
+                          });
+                        }}
+                        className="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-amber-400"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* LIVE RESULT FORCER / RIGGING TOOL */}
             <div className="bg-[#121829] border border-amber-500/40 rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
                 <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
-                <span>Live Game Result Forcer (Testing &amp; Override)</span>
+                <span>Next Round Specific Result Override (Rigging Matrix)</span>
               </div>
               <p className="text-[11px] text-slate-400">
                 Force exact outcomes on the very next round of each game:
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
                 {/* Slots Forcer */}
                 <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
                   <span className="font-bold text-slate-200 block text-[11px]">🎰 Next Slots Spin:</span>
@@ -408,7 +537,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                 {/* Dragon vs Tiger Forcer */}
                 <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
-                  <span className="font-bold text-slate-200 block text-[11px]">🐉 Next Dragon vs Tiger:</span>
+                  <span className="font-bold text-slate-200 block text-[11px]">🐉 Dragon vs Tiger:</span>
                   <div className="grid grid-cols-2 gap-1">
                     {[
                       { label: '🎲 Random', val: 'random' },
@@ -421,6 +550,205 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         onClick={() => handleForcedResultChange('dragonTiger', opt.val as any)}
                         className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
                           settings.forcedResults.dragonTiger === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Teen Patti 20-20 Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">⚡ Teen Patti 20-20:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🅰️ Player A', val: 'playerA' },
+                      { label: '🅱️ Player B', val: 'playerB' },
+                      { label: '💎 Pair Plus', val: 'pairPlus' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('teenPatti', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.teenPatti === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* European Roulette Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">🎡 Roulette:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🔴 Force Red', val: 'red' },
+                      { label: '⚫ Force Black', val: 'black' },
+                      { label: '🟢 Zero (36x)', val: 'zero' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('roulette', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.roulette === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 7 Up 7 Down Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">🎲 7 Up 7 Down:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '⬇️ Down (2-6)', val: 'down' },
+                      { label: '🌟 Lucky 7 (5.8x)', val: 'lucky7' },
+                      { label: '⬆️ Up (8-12)', val: 'up' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('sevenUpDown', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.sevenUpDown === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Zoo Roulette Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">🦁 Zoo Roulette:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🦅 Birds (12x)', val: 'birds' },
+                      { label: '🦁 Beasts (12x)', val: 'beasts' },
+                      { label: '🦈 Shark (24x)', val: 'shark' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('zooRoulette', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.zooRoulette === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Car Roulette Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">🏎️ Car Roulette:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🏎️ Ferrari (40x)', val: 'ferrari' },
+                      { label: '⚡ Lambo (30x)', val: 'lambo' },
+                      { label: '🚘 BMW (5x)', val: 'bmw' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('carRoulette', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.carRoulette === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Macau Sic Bo Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">🎲 Macau Sic Bo:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🔹 Small (4-10)', val: 'small' },
+                      { label: '🔺 Big (11-17)', val: 'big' },
+                      { label: '👑 Triple (180x)', val: 'triple' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('sicBo', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.sicBo === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Baccarat Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">👑 VIP Baccarat:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '🔵 Player Win', val: 'player' },
+                      { label: '🔴 Banker Win', val: 'banker' },
+                      { label: '🟢 Tie (8:1)', val: 'tie' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('baccarat', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.baccarat === opt.val
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mines Forcer */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
+                  <span className="font-bold text-slate-200 block text-[11px]">💣 Mines Gold:</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      { label: '🎲 Random', val: 'random' },
+                      { label: '💎 Safe Gold', val: 'safe' },
+                      { label: '💥 Instant Bomb', val: 'bomb' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => handleForcedResultChange('mines', opt.val as any)}
+                        className={`py-1 px-2 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                          settings.forcedResults.mines === opt.val
                             ? 'bg-amber-500 text-slate-950'
                             : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                         }`}

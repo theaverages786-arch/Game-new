@@ -85,23 +85,47 @@ export const RouletteGame: React.FC<RouletteProps> = ({
 
     setTimeout(() => {
       resolveWheelOutcome();
-    }, 2800);
+    }, 1800);
   };
 
   const resolveWheelOutcome = () => {
     // Generate winning number 0-36
     let winNum = Math.floor(Math.random() * 37);
 
-    // Admin RTP bias
-    if (adminSettings.rtpMode === 'high_win' && Object.keys(placedBets).length > 0) {
-      const redBet = placedBets['red'] || 0;
-      const blackBet = placedBets['black'] || 0;
-      if (redBet > blackBet) {
-        winNum = RED_NUMS[Math.floor(Math.random() * RED_NUMS.length)];
-      } else if (blackBet > redBet) {
-        const blackNums = Array.from({ length: 36 }, (_, i) => i + 1).filter((n) => !RED_NUMS.includes(n));
-        winNum = blackNums[Math.floor(Math.random() * blackNums.length)];
+    // Admin Outcome Matrix & Forcer Checks
+    const forced = adminSettings?.forcedResults?.roulette;
+    const masterMode = adminSettings?.masterOutcomeMode;
+    const globalWin = adminSettings?.globalWinRate ?? 65;
+
+    if (forced === 'zero') {
+      winNum = 0;
+    } else if (forced === 'red') {
+      winNum = RED_NUMS[Math.floor(Math.random() * RED_NUMS.length)];
+    } else if (forced === 'black') {
+      const blackNums = Array.from({ length: 36 }, (_, i) => i + 1).filter((n) => !RED_NUMS.includes(n));
+      winNum = blackNums[Math.floor(Math.random() * blackNums.length)];
+    } else if (masterMode === 'always_win' || (Math.random() * 100 < globalWin && Object.keys(placedBets).length > 0)) {
+      const placedKeys = Object.keys(placedBets).filter((k) => placedBets[k] > 0);
+      if (placedKeys.length > 0) {
+        const topKey = placedKeys[0];
+        if (topKey.startsWith('num_')) {
+          winNum = parseInt(topKey.replace('num_', '')) || 7;
+        } else if (topKey === 'red') {
+          winNum = RED_NUMS[Math.floor(Math.random() * RED_NUMS.length)];
+        } else if (topKey === 'black') {
+          const blackNums = Array.from({ length: 36 }, (_, i) => i + 1).filter((n) => !RED_NUMS.includes(n));
+          winNum = blackNums[Math.floor(Math.random() * blackNums.length)];
+        } else if (topKey === 'even') {
+          winNum = 18;
+        } else if (topKey === 'odd') {
+          winNum = 17;
+        }
       }
+    } else if (masterMode === 'always_lose' || forced === 'loss') {
+      // Pick a number with zero bets
+      const betNumbers = Object.keys(placedBets).map((k) => parseInt(k.replace('num_', ''))).filter((n) => !isNaN(n));
+      const unbet = Array.from({ length: 37 }, (_, i) => i).filter((n) => !betNumbers.includes(n));
+      if (unbet.length > 0) winNum = unbet[Math.floor(Math.random() * unbet.length)];
     }
 
     setWinningNumber(winNum);

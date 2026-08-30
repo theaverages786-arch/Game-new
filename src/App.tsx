@@ -42,6 +42,28 @@ import { LiveCasinoGame } from './components/games/LiveCasinoGame';
 import { JILICardsGame } from './components/games/JILICardsGame';
 import { CaiShenFishingGame } from './components/games/CaiShenFishingGame';
 
+// Extended Game Suite
+import { TeenPatti2020Game } from './components/games/TeenPatti2020Game';
+import { RummyGame } from './components/games/RummyGame';
+import { TexasHoldemGame } from './components/games/TexasHoldemGame';
+import { BlackjackGame } from './components/games/BlackjackGame';
+import { BaccaratGame } from './components/games/BaccaratGame';
+import { LudoGame } from './components/games/LudoGame';
+import { RomaSlotGame } from './components/games/RomaSlotGame';
+import { FruitPartySlotGame } from './components/games/FruitPartySlotGame';
+import { AztecGemsSlotGame } from './components/games/AztecGemsSlotGame';
+import { MegaWinSlotGame } from './components/games/MegaWinSlotGame';
+import { GoldenEmpireSlotGame } from './components/games/GoldenEmpireSlotGame';
+import { FortuneTreeSlotGame } from './components/games/FortuneTreeSlotGame';
+import { BoxingKingSlotGame } from './components/games/BoxingKingSlotGame';
+import { ZooRouletteGame } from './components/games/ZooRouletteGame';
+import { CarRouletteGame } from './components/games/CarRouletteGame';
+import { SevenUpDownGame } from './components/games/SevenUpDownGame';
+import { DiceMasterGame } from './components/games/DiceMasterGame';
+import { RedVsBlackGame } from './components/games/RedVsBlackGame';
+import { SicBoGame } from './components/games/SicBoGame';
+import { HiLoGame } from './components/games/HiLoGame';
+
 // Modals
 import { AdminModal } from './components/admin/AdminModal';
 import { DepositModal } from './components/modals/DepositModal';
@@ -638,6 +660,186 @@ export default function App() {
               <LuckyWheelGame
                 balance={user.balance}
                 onBet={handleGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'teen_patti_2020' && (
+              <TeenPatti2020Game
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_rummy' && (
+              <RummyGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_texas_holdem' && (
+              <TexasHoldemGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_blackjack' && (
+              <BlackjackGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'cards_baccarat' && (
+              <BaccaratGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'arcade_ludo' && (
+              <LudoGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_roma' && (
+              <RomaSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_fruit_party' && (
+              <FruitPartySlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_aztec_gems' && (
+              <AztecGemsSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_mega_win' && (
+              <MegaWinSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_golden_empire' && (
+              <GoldenEmpireSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_fortune_tree' && (
+              <FortuneTreeSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'slots_boxing_king' && (
+              <BoxingKingSlotGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'zoo_roulette' && (
+              <ZooRouletteGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'car_roulette' && (
+              <CarRouletteGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'seven_up_down' && (
+              <SevenUpDownGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'dice_master' && (
+              <DiceMasterGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'red_vs_black' && (
+              <RedVsBlackGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'sic_bo' && (
+              <SicBoGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
+                onBack={() => setActiveGame(null)}
+                adminSettings={adminSettings}
+              />
+            )}
+            {activeGame === 'hilo_game' && (
+              <HiLoGame
+                userBalance={user.balance}
+                onUpdateBalance={handleUpdateUserBalance}
+                onRecordBet={handleRecordGameBet}
                 onBack={() => setActiveGame(null)}
                 adminSettings={adminSettings}
               />

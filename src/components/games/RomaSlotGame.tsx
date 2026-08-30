@@ -1,0 +1,251 @@
+import React, { useState } from 'react';
+import { ArrowLeft, RefreshCw, Trophy, Volume2, VolumeX, ShieldCheck, Flame, Zap } from 'lucide-react';
+import { soundService } from '../../services/sound';
+import { AdminSettings } from '../../types';
+
+interface RomaSlotProps {
+  onBack: () => void;
+  userBalance: number;
+  onUpdateBalance: (newBalance: number) => void;
+  onRecordBet: (gameId: string, title: string, bet: number, win: number, mult: number) => void;
+  adminSettings: AdminSettings;
+}
+
+const SYMBOLS = [
+  { id: 'lion', label: '🦁', name: 'Lion', payout: 50, color: 'from-amber-500 to-yellow-600' },
+  { id: 'gladiator', label: '⚔️', name: 'Gladiator', payout: 30, color: 'from-red-600 to-rose-700' },
+  { id: 'helmet', label: '🪖', name: 'Helmet', payout: 20, color: 'from-orange-500 to-amber-600' },
+  { id: 'shield', label: '🛡️', name: 'Shield', payout: 15, color: 'from-blue-600 to-indigo-700' },
+  { id: 'vase', label: '🏺', name: 'Roman Urn', payout: 10, color: 'from-emerald-600 to-teal-700' },
+  { id: 'grapes', label: '🍇', name: 'Grapes', payout: 5, color: 'from-purple-600 to-violet-700' },
+  { id: 'colosseum', label: '🏛️', name: 'Bonus Colosseum', payout: 100, color: 'from-yellow-400 to-amber-500' },
+];
+
+export const RomaSlotGame: React.FC<RomaSlotProps> = ({
+  onBack,
+  userBalance,
+  onUpdateBalance,
+  onRecordBet,
+  adminSettings,
+}) => {
+  const [bet, setBet] = useState(20);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [reels, setReels] = useState<string[][]>([
+    ['lion', 'gladiator', 'helmet'],
+    ['shield', 'colosseum', 'vase'],
+    ['grapes', 'lion', 'gladiator'],
+  ]);
+  const [winLines, setWinLines] = useState<number[]>([]);
+  const [lastWin, setLastWin] = useState(0);
+  const [comboCount, setComboCount] = useState(0);
+  const [freeSpins, setFreeSpins] = useState(0);
+
+  const bets = [5, 10, 20, 50, 100, 200, 500, 1000];
+
+  const handleSpin = () => {
+    if (isSpinning) return;
+    if (freeSpins === 0 && userBalance < bet) {
+      alert('Insufficient balance!');
+      return;
+    }
+
+    if (freeSpins === 0) {
+      soundService.playChip();
+      onUpdateBalance(userBalance - bet);
+    } else {
+      setFreeSpins(prev => prev - 1);
+    }
+
+    setIsSpinning(true);
+    setWinLines([]);
+    setLastWin(0);
+    soundService.playSpinTick();
+
+    const spinDuration = 1200;
+    const interval = setInterval(() => {
+      setReels([
+        [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+        [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+        [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+      ]);
+    }, 80);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      const rtp = adminSettings?.rtpRate ?? 92;
+      const willWin = Math.random() * 100 < rtp;
+
+      let finalReels: string[][];
+      let winAmount = 0;
+      let winningLines: number[] = [];
+
+      if (willWin) {
+        const winningSym = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+        finalReels = [
+          [winningSym.id, getRandomSymbol(), getRandomSymbol()],
+          [winningSym.id, getRandomSymbol(), getRandomSymbol()],
+          [winningSym.id, getRandomSymbol(), getRandomSymbol()],
+        ];
+        winningLines = [0];
+        const mult = winningSym.payout;
+        winAmount = bet * mult;
+
+        if (winningSym.id === 'colosseum') {
+          setFreeSpins(prev => prev + 5);
+        }
+        setComboCount(prev => prev + 1);
+      } else {
+        finalReels = [
+          [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+          [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+          [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()],
+        ];
+        setComboCount(0);
+      }
+
+      setReels(finalReels);
+      setIsSpinning(false);
+      setWinLines(winningLines);
+
+      if (winAmount > 0) {
+        setLastWin(winAmount);
+        onUpdateBalance(userBalance + winAmount);
+        onRecordBet('roma_slots', 'Roma Gladiator Slots', bet, winAmount, +(winAmount / bet).toFixed(2));
+        soundService.playWin();
+      } else {
+        onRecordBet('roma_slots', 'Roma Gladiator Slots', bet, 0, 0);
+      }
+    }, spinDuration);
+  };
+
+  const getRandomSymbol = () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].id;
+  const getSymbolData = (id: string) => SYMBOLS.find(s => s.id === id) || SYMBOLS[0];
+
+  return (
+    <div className="min-h-[85vh] bg-gradient-to-b from-[#241103] via-[#3d1c05] to-[#140801] text-slate-100 rounded-3xl p-3 sm:p-5 border border-amber-600/40 shadow-2xl relative flex flex-col justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-amber-800/60 pb-3">
+        <button
+          onClick={() => {
+            soundService.playClick();
+            onBack();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Lobby</span>
+        </button>
+
+        <div className="text-center">
+          <h1 className="text-base sm:text-lg font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent flex items-center justify-center gap-1.5">
+            <span>🏛️</span>
+            <span>ROMA GLADIATOR SLOTS</span>
+          </h1>
+          <span className="text-[10px] text-amber-300 font-medium">Colosseum Bonus • Combo Cascading Respins</span>
+        </div>
+
+        <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
+          <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
+          <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
+            Rs {userBalance.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Slot Arena */}
+      <div className="my-auto bg-[#170902] border-4 border-amber-500/60 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col items-center justify-between min-h-[360px] relative">
+        {/* Top Combo & Free Spins Meter */}
+        <div className="flex items-center justify-between w-full mb-3">
+          <div className="flex items-center gap-1.5 bg-black/60 px-3 py-1 rounded-xl border border-amber-500/40 text-xs font-black text-amber-300">
+            <Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+            <span>Combo: {comboCount}x</span>
+          </div>
+
+          {freeSpins > 0 && (
+            <div className="bg-gradient-to-r from-rose-600 to-amber-500 px-4 py-1 rounded-full text-white text-xs font-black animate-bounce shadow-lg">
+              🎉 FREE SPINS: {freeSpins} REMAINING
+            </div>
+          )}
+
+          <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/40 text-xs font-black text-emerald-400 font-mono">
+            WIN: Rs {lastWin.toLocaleString()}
+          </div>
+        </div>
+
+        {/* 3x3 Roman Slot Grid */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-[#0d0401] p-3 rounded-2xl border-2 border-amber-600/60 shadow-inner max-w-sm w-full">
+          {reels.map((col, colIdx) => (
+            <div key={colIdx} className="space-y-2">
+              {col.map((symId, rowIdx) => {
+                const sym = getSymbolData(symId);
+                return (
+                  <div
+                    key={rowIdx}
+                    className={`h-20 sm:h-24 rounded-2xl bg-gradient-to-b ${sym.color} border-2 border-white/20 flex flex-col items-center justify-center shadow-lg transition-transform ${
+                      isSpinning ? 'scale-95 blur-[1px]' : 'scale-100'
+                    }`}
+                  >
+                    <span className="text-3xl sm:text-4xl drop-shadow-md">{sym.label}</span>
+                    <span className="text-[10px] font-black text-white uppercase drop-shadow mt-1">
+                      {sym.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Big Win Popup */}
+        {lastWin > 0 && (
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 z-20 animate-fade-in">
+            <Trophy className="w-14 h-14 text-amber-400 mb-2 animate-bounce" />
+            <h2 className="text-xl sm:text-2xl font-black text-amber-400 uppercase tracking-widest">
+              COLOSSEUM BIG WIN!
+            </h2>
+            <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono my-2">
+              +Rs {lastWin.toLocaleString()}
+            </div>
+            <button
+              onClick={() => setLastWin(0)}
+              className="px-6 py-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 font-black rounded-xl text-xs shadow-lg cursor-pointer"
+            >
+              Collect Coins
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Bet & Spin Controls */}
+      <div className="bg-[#120601] border border-amber-700/50 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 mt-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+          {bets.map(b => (
+            <button
+              key={b}
+              onClick={() => {
+                soundService.playChip();
+                setBet(b);
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-black transition cursor-pointer border ${
+                bet === b
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md scale-105'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              Rs {b}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleSpin}
+          disabled={isSpinning}
+          className="px-10 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl hover:scale-105 transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isSpinning ? 'animate-spin' : ''}`} />
+          <span>{isSpinning ? 'Spinning...' : freeSpins > 0 ? `Free Spin (${freeSpins})` : `Spin (Rs ${bet})`}</span>
+        </button>
+      </div>
+    </div>
+  );
+};

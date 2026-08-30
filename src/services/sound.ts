@@ -230,6 +230,14 @@ class SoundFX {
     osc.stop(this.ctx.currentTime + 0.06);
   }
 
+  public playCardDeal() {
+    this.playCardFlip();
+  }
+
+  public playDiceRoll() {
+    this.playSpinTick();
+  }
+
   public playCannonShoot() {
     if (!this.enabled) return;
     this.initCtx();

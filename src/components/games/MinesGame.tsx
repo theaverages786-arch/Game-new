@@ -79,7 +79,39 @@ export const MinesGame: React.FC<MinesGameProps> = ({
   const handleTileClick = (index: number) => {
     if (!isPlaying || gameOver || grid[index].revealed) return;
 
-    const tile = grid[index];
+    let tile = grid[index];
+
+    // Admin Outcome Matrix & Forcer Checks
+    const forced = adminSettings?.forcedResults?.mines;
+    const masterMode = adminSettings?.masterOutcomeMode;
+    const gameRtp = adminSettings?.gameRtpOverrides?.['mines_treasure'] ?? adminSettings?.rtpPercentage ?? 96;
+    const globalWin = adminSettings?.globalWinRate ?? 65;
+
+    if (masterMode === 'always_win' || forced === 'safe') {
+      if (tile.isMine) {
+        // Swap mine with an unrevealed safe tile
+        const safeIdx = grid.findIndex((t, idx) => !t.isMine && !t.revealed && idx !== index);
+        if (safeIdx !== -1) {
+          grid[safeIdx].isMine = true;
+          grid[index].isMine = false;
+          tile = grid[index];
+        }
+      }
+    } else if (masterMode === 'always_lose' || forced === 'bomb') {
+      tile.isMine = true;
+      grid[index].isMine = true;
+    } else if (tile.isMine) {
+      // Dynamic RTP / Win rate calculation: give chance to dodge bomb
+      const randomRoll = Math.random() * 100;
+      if (randomRoll < (globalWin - 20) && (gameRtp > 95)) {
+        const safeIdx = grid.findIndex((t, idx) => !t.isMine && !t.revealed && idx !== index);
+        if (safeIdx !== -1) {
+          grid[safeIdx].isMine = true;
+          grid[index].isMine = false;
+          tile = grid[index];
+        }
+      }
+    }
 
     if (tile.isMine) {
       // Hit a bomb!
