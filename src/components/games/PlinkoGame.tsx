@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, CircleDot, Play } from 'lucide-react';
+import Matter from 'matter-js';
+import { ArrowLeft, Play, Pause, Flame, Sparkles, Volume2, VolumeX, ShieldCheck, History } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration, formatPKR } from '../../services/gameEngine';
 
 interface PlinkoProps {
   onBack: () => void;
@@ -11,17 +13,42 @@ interface PlinkoProps {
   adminSettings: AdminSettings;
 }
 
-interface Ball {
-  id: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  bet: number;
-  row: number;
-}
+type RiskLevel = 'low' | 'medium' | 'high';
 
-const MULTIPLIERS = [10, 3.5, 1.5, 0.6, 0.3, 0.6, 1.5, 3.5, 10];
+// Stake.com standard Plinko multipliers
+const PLINKO_PAYOUTS: Record<number, Record<RiskLevel, number[]>> = {
+  8: {
+    low: [5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6],
+    medium: [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13],
+    high: [29, 4, 1.5, 0.3, 0.2, 0.3, 1.5, 4, 29],
+  },
+  10: {
+    low: [8.9, 3, 1.4, 1.1, 1, 0.5, 1, 1.1, 1.4, 3, 8.9],
+    medium: [22, 5, 2, 1.4, 0.6, 0.4, 0.6, 1.4, 2, 5, 22],
+    high: [76, 10, 3, 0.9, 0.2, 0.2, 0.2, 0.9, 3, 10, 76],
+  },
+  12: {
+    low: [10, 3, 1.6, 1.4, 1.1, 1, 0.5, 1, 1.1, 1.4, 1.6, 3, 10],
+    medium: [33, 11, 4, 2, 1.1, 0.6, 0.3, 0.6, 1.1, 2, 4, 11, 33],
+    high: [170, 24, 8.1, 2, 0.7, 0.2, 0.2, 0.2, 0.7, 2, 8.1, 24, 170],
+  },
+  14: {
+    low: [7.1, 4, 1.9, 1.4, 1.3, 1.1, 1, 0.5, 1, 1.1, 1.3, 1.4, 1.9, 4, 7.1],
+    medium: [58, 15, 7, 4, 1.9, 1, 0.5, 0.2, 0.5, 1, 1.9, 4, 7, 15, 58],
+    high: [420, 56, 18, 5, 1.9, 0.3, 0.2, 0.2, 0.2, 0.2, 0.3, 1.9, 5, 18, 56, 420],
+  },
+  16: {
+    low: [16, 9, 2, 1.4, 1.4, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.4, 1.4, 2, 9, 16],
+    medium: [110, 41, 10, 5, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 5, 10, 41, 110],
+    high: [1000, 130, 26, 9, 4, 2, 0.2, 0.2, 0.2, 0.2, 0.2, 2, 4, 9, 26, 130, 1000],
+  },
+};
+
+interface BallMetadata {
+  id: number;
+  bet: number;
+  color: string;
+}
 
 export const PlinkoGame: React.FC<PlinkoProps> = ({
   onBack,
@@ -30,108 +57,258 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
   onRecordBet,
   adminSettings,
 }) => {
-  const [bet, setBet] = useState(50);
-  const [balls, setBalls] = useState<Ball[]>([]);
-  const [lastWin, setLastWin] = useState<number | null>(null);
-  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [bet, setBet] = useState<number>(50);
+  const [rows, setRows] = useState<number>(12);
+  const [risk, setRisk] = useState<RiskLevel>('high');
+  const [autoDrop, setAutoDrop] = useState<boolean>(false);
+  const [history, setHistory] = useState<number[]>([2, 0.2, 8.1, 0.7, 24, 0.2, 1.5]);
+  const [activeBucket, setActiveBucket] = useState<number | null>(null);
 
-  const nextBallId = useRef(1);
-  const ROWS = 8;
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const engineRef = useRef<Matter.Engine | null>(null);
+  const runnerRef = useRef<Matter.Runner | null>(null);
+  const autoDropTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const ballMetaRef = useRef<Map<number, BallMetadata>>(new Map());
+  const balanceRef = useRef(userBalance);
+  balanceRef.current = userBalance;
 
-  const dropBall = () => {
-    if (userBalance < bet) {
-      alert('Insufficient balance to drop ball!');
-      return;
+  const multipliers = PLINKO_PAYOUTS[rows]?.[risk] || PLINKO_PAYOUTS[12].high;
+
+  // Initialize and rebuild physics world whenever rows change
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const width = 640;
+    const height = 580;
+    canvas.width = width;
+    canvas.height = height;
+
+    // Create Matter Engine
+    const engine = Matter.Engine.create({
+      gravity: { x: 0, y: 1.15, scale: 0.0012 },
+    });
+    engineRef.current = engine;
+
+    const world = engine.world;
+    Matter.World.clear(world, false);
+
+    // Peg Pyramid layout
+    const pegRadius = 4.5;
+    const startY = 70;
+    const spacingY = (height - 150) / rows;
+    const pegBodies: Matter.Body[] = [];
+
+    for (let r = 0; r < rows; r++) {
+      const numPegs = r + 3;
+      const spacingX = Math.min(38, (width - 80) / (rows + 3));
+      const rowWidth = (numPegs - 1) * spacingX;
+      const startX = (width - rowWidth) / 2;
+
+      for (let c = 0; c < numPegs; c++) {
+        const x = startX + c * spacingX;
+        const y = startY + r * spacingY;
+        const peg = Matter.Bodies.circle(x, y, pegRadius, {
+          isStatic: true,
+          restitution: 0.75,
+          friction: 0.05,
+          label: `peg_${r}`,
+          render: { fillStyle: '#fbbf24' },
+        });
+        pegBodies.push(peg);
+      }
     }
 
-    soundService.playChip();
-    onUpdateBalance(userBalance - bet);
+    // Boundary funnel walls to prevent balls getting stuck outside
+    const wallOpts = { isStatic: true, restitution: 0.8, friction: 0 };
+    const leftWall = Matter.Bodies.rectangle(20, height / 2, 20, height, wallOpts);
+    const rightWall = Matter.Bodies.rectangle(width - 20, height / 2, 20, height, wallOpts);
 
-    const newBall: Ball = {
-      id: nextBallId.current++,
-      x: 50 + (Math.random() - 0.5) * 4,
-      y: 10,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: 1.2,
-      bet: bet,
-      row: 0,
-    };
+    Matter.World.add(world, [...pegBodies, leftWall, rightWall]);
 
-    setBalls((prev) => [...prev, newBall]);
-  };
+    // Collision listener for sounds & bucket detection
+    Matter.Events.on(engine, 'collisionStart', (event) => {
+      event.pairs.forEach((pair) => {
+        const bodyA = pair.bodyA;
+        const bodyB = pair.bodyB;
 
-  // Ball physics loop
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setBalls((prev) => {
-        const nextBalls: Ball[] = [];
+        const isBallA = bodyA.label === 'plinko_ball';
+        const isBallB = bodyB.label === 'plinko_ball';
+        const ball = isBallA ? bodyA : isBallB ? bodyB : null;
+        const other = isBallA ? bodyB : bodyA;
 
-        prev.forEach((b) => {
-          let ny = b.y + b.vy;
-          let nx = b.x + b.vx;
-          let nvy = b.vy + 0.15;
-          let nvx = b.vx;
+        if (ball && other.label?.startsWith('peg_')) {
+          const rowNum = parseInt(other.label.split('_')[1] || '0', 10);
+          soundService.playPlinkoPeg(rowNum / rows);
+        }
+      });
+    });
 
-          // Check if ball reached bottom buckets
-          if (ny >= 85) {
-            // Determine bucket index (0 to 8)
-            let bucketIdx = Math.floor((nx / 100) * MULTIPLIERS.length);
-            bucketIdx = Math.max(0, Math.min(MULTIPLIERS.length - 1, bucketIdx));
+    // Custom 60fps render loop
+    let animId: number;
+    const ctx = canvas.getContext('2d');
 
-            // Admin RTP bias
-            if (adminSettings.rtpMode === 'high_win' && Math.random() < 0.4) {
-              bucketIdx = Math.random() < 0.5 ? 0 : 8; // hit 10x!
+    const render = () => {
+      if (!ctx || !engineRef.current) return;
+      Matter.Engine.update(engineRef.current, 1000 / 60);
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw background ambient gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      bgGrad.addColorStop(0, '#0a0f1d');
+      bgGrad.addColorStop(1, '#05070e');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw Pegs
+      pegBodies.forEach((peg) => {
+        ctx.beginPath();
+        ctx.arc(peg.position.x, peg.position.y, pegRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // Draw and check balls
+      const allBodies = Matter.Composite.allBodies(engine.world);
+      const ballsToRemove: Matter.Body[] = [];
+
+      allBodies.forEach((body) => {
+        if (body.label === 'plinko_ball') {
+          const meta = ballMetaRef.current.get(body.id);
+
+          // Draw ball with neon glow
+          ctx.beginPath();
+          ctx.arc(body.position.x, body.position.y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = meta?.color || '#38bdf8';
+          ctx.shadowColor = meta?.color || '#0284c7';
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Check if ball passed bottom line
+          if (body.position.y >= height - 48) {
+            ballsToRemove.push(body);
+
+            // Compute bucket index
+            const bucketCount = multipliers.length;
+            const startX = (width - (rows + 2) * Math.min(38, (width - 80) / (rows + 3))) / 2 - 10;
+            const endX = width - startX;
+            const rawRatio = (body.position.x - startX) / (endX - startX);
+            let bucketIdx = Math.floor(rawRatio * bucketCount);
+            bucketIdx = Math.max(0, Math.min(bucketCount - 1, bucketIdx));
+
+            // Admin RTP override
+            const fav = shouldPlayerWin('arcade_plinko', adminSettings, 0.48);
+            if (fav && Math.random() < 0.25) {
+              bucketIdx = Math.random() < 0.5 ? 0 : bucketCount - 1; // hit high mult
             }
 
-            const mult = MULTIPLIERS[bucketIdx];
-            const win = Math.round(b.bet * mult);
+            const mult = multipliers[bucketIdx];
+            const ballBet = meta?.bet || bet;
+            const win = Math.round(ballBet * mult);
 
-            setActiveSlot(bucketIdx);
-            setTimeout(() => setActiveSlot(null), 400);
+            // Trigger bucket reaction
+            setActiveBucket(bucketIdx);
+            setTimeout(() => setActiveBucket(null), 300);
 
-            if (win >= b.bet) {
-              soundService.playWin();
+            if (mult >= 2) {
+              playOutcomeCelebration(win, ballBet, mult >= 10);
             } else {
               soundService.playSpinTick();
             }
 
-            onUpdateBalance(userBalance - b.bet + win);
-            onRecordBet('arcade_plinko', 'Plinko Ball Drop', b.bet, win, mult);
-            setLastWin(win);
-          } else {
-            // Check peg bounce
-            const currentRow = Math.floor((ny / 85) * ROWS);
-            if (currentRow > b.row) {
-              soundService.playSpinTick();
-              nvx += (Math.random() - 0.5) * 1.8;
-              b.row = currentRow;
-            }
-
-            nextBalls.push({
-              ...b,
-              x: Math.max(10, Math.min(90, nx)),
-              y: ny,
-              vx: nvx * 0.96,
-              vy: nvy,
-            });
+            const newBal = balanceRef.current + win;
+            balanceRef.current = newBal;
+            onUpdateBalance(newBal);
+            onRecordBet('arcade_plinko', `Plinko ${rows}R ${risk.toUpperCase()}`, ballBet, win, mult);
+            setHistory((prev) => [mult, ...prev.slice(0, 11)]);
           }
-        });
-
-        return nextBalls;
+        }
       });
-    }, 40);
 
-    return () => clearInterval(timer);
-  }, [userBalance]);
+      // Safely remove finished balls
+      ballsToRemove.forEach((b) => {
+        ballMetaRef.current.delete(b.id);
+        Matter.World.remove(engine.world, b);
+      });
+
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      if (engineRef.current) {
+        Matter.World.clear(engineRef.current.world, false);
+      }
+    };
+  }, [rows, risk, adminSettings]);
+
+  // Drop single ball function
+  const dropBall = () => {
+    if (balanceRef.current < bet) {
+      alert('Insufficient balance to drop ball!');
+      setAutoDrop(false);
+      return;
+    }
+
+    // Deduct bet from balance immediately
+    const nextBal = balanceRef.current - bet;
+    balanceRef.current = nextBal;
+    onUpdateBalance(nextBal);
+    soundService.playChip();
+
+    if (!engineRef.current) return;
+
+    const width = 640;
+    // Jitter top spawn slightly to generate organic natural distribution
+    const spawnX = width / 2 + (Math.random() - 0.5) * 14;
+    const spawnY = 30;
+
+    const ballColors = ['#f43f5e', '#a855f7', '#06b6d4', '#eab308', '#22c55e', '#ec4899'];
+    const ballColor = ballColors[Math.floor(Math.random() * ballColors.length)];
+
+    const ball = Matter.Bodies.circle(spawnX, spawnY, 6.5, {
+      restitution: 0.65,
+      friction: 0.05,
+      frictionAir: 0.02,
+      density: 0.002,
+      label: 'plinko_ball',
+    });
+
+    ballMetaRef.current.set(ball.id, { id: ball.id, bet, color: ballColor });
+    Matter.World.add(engineRef.current.world, ball);
+  };
+
+  // Auto-drop loop
+  useEffect(() => {
+    if (autoDrop) {
+      autoDropTimerRef.current = setInterval(() => {
+        dropBall();
+      }, 350);
+    } else {
+      if (autoDropTimerRef.current) clearInterval(autoDropTimerRef.current);
+    }
+
+    return () => {
+      if (autoDropTimerRef.current) clearInterval(autoDropTimerRef.current);
+    };
+  }, [autoDrop, bet]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-3 p-2 sm:p-4 text-white">
-      {/* Header */}
+      {/* Top Header */}
       <div className="flex items-center justify-between bg-[#0e1424] border border-amber-500/30 rounded-2xl p-3 shadow-lg">
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
               soundService.playClick();
+              setAutoDrop(false);
               onBack();
             }}
             className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition cursor-pointer"
@@ -139,8 +316,17 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-base font-black text-amber-300 uppercase">PLINKO 777</h2>
-            <span className="text-[11px] text-slate-400">Peg Pyramid &bull; Multipliers up to 10x</span>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-amber-300 uppercase tracking-wide">
+                STAKE PLINKO VIP
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+                PRO 60FPS
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-400">
+              Rigid Body Matter.js Physics &bull; Real Payout Curve
+            </span>
           </div>
         </div>
 
@@ -150,87 +336,187 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
         </div>
       </div>
 
-      {/* Main Plinko Board */}
-      <div className="relative h-96 sm:h-[420px] rounded-3xl border-2 border-amber-500/40 bg-gradient-to-b from-[#10172c] via-[#090e1c] to-[#04060d] overflow-hidden p-4 shadow-2xl flex flex-col justify-between">
-        {/* Pegs Grid */}
-        <div className="absolute inset-0 flex flex-col justify-around py-8 pointer-events-none">
-          {Array.from({ length: ROWS }, (_, r) => (
-            <div key={r} className="flex justify-center gap-6 sm:gap-10">
-              {Array.from({ length: r + 3 }, (_, c) => (
-                <div
-                  key={c}
-                  className="w-2.5 h-2.5 bg-amber-400 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.8)]"
-                ></div>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* Animated Falling Balls */}
-        {balls.map((b) => (
-          <div
-            key={b.id}
-            style={{ left: `${b.x}%`, top: `${b.y}%` }}
-            className="absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-yellow-300 to-amber-500 rounded-full shadow-lg border border-white"
-          ></div>
+      {/* Recent History Multiplier Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto p-2 bg-slate-950/80 border border-slate-800 rounded-2xl scrollbar-none">
+        <span className="text-[10px] font-black text-slate-400 flex items-center gap-1 shrink-0 px-1">
+          <History className="w-3.5 h-3.5 text-amber-400" /> RECENT:
+        </span>
+        {history.map((m, idx) => (
+          <span
+            key={idx}
+            className={`px-2.5 py-1 rounded-xl text-xs font-black shrink-0 shadow transition ${
+              m >= 20
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-amber-500/30 scale-105'
+                : m >= 5
+                ? 'bg-purple-600 text-white'
+                : m >= 2
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400'
+            }`}
+          >
+            {m}x
+          </span>
         ))}
+      </div>
 
-        {/* Multiplier Buckets at Bottom */}
-        <div className="mt-auto grid grid-cols-9 gap-1 z-10">
-          {MULTIPLIERS.map((m, idx) => {
-            const isHit = activeSlot === idx;
+      {/* Main Board Container */}
+      <div className="relative rounded-3xl border-2 border-amber-500/40 bg-[#070b16] overflow-hidden shadow-2xl p-2 sm:p-4 flex flex-col items-center">
+        {/* Canvas for Physics */}
+        <canvas
+          ref={canvasRef}
+          className="w-full max-w-[580px] h-[360px] sm:h-[460px] rounded-2xl block"
+        />
+
+        {/* Multiplier Bucket Shelf */}
+        <div className="w-full max-w-[580px] -mt-6 z-10 grid gap-0.5 sm:gap-1" style={{ gridTemplateColumns: `repeat(${multipliers.length}, minmax(0, 1fr))` }}>
+          {multipliers.map((m, idx) => {
+            const isHit = activeBucket === idx;
+            const isExtreme = idx === 0 || idx === multipliers.length - 1;
+            const isMid = idx === 1 || idx === multipliers.length - 2;
+
             return (
               <div
                 key={idx}
-                className={`py-2 rounded-xl text-center font-black text-[10px] sm:text-xs border transition-all ${
+                className={`py-1.5 sm:py-2 text-center rounded-xl font-black text-[9px] sm:text-xs transition-all duration-150 ${
                   isHit
-                    ? 'bg-amber-400 border-white text-slate-950 scale-110 shadow-lg'
-                    : m >= 10
-                    ? 'bg-rose-700/80 border-rose-400 text-white'
-                    : m >= 3
-                    ? 'bg-amber-600/80 border-amber-400 text-white'
-                    : m >= 1
-                    ? 'bg-yellow-700/80 border-yellow-400 text-yellow-200'
-                    : 'bg-slate-900/80 border-slate-700 text-slate-400'
+                    ? 'bg-white text-slate-950 scale-125 z-20 shadow-[0_0_15px_rgba(255,255,255,0.9)]'
+                    : isExtreme
+                    ? 'bg-gradient-to-b from-rose-500 to-red-700 text-white shadow-red-900/50'
+                    : isMid
+                    ? 'bg-gradient-to-b from-amber-500 to-orange-600 text-white shadow-amber-900/50'
+                    : m >= 2
+                    ? 'bg-gradient-to-b from-yellow-500 to-amber-600 text-slate-950'
+                    : 'bg-gradient-to-b from-slate-800 to-slate-900 text-slate-300'
                 }`}
               >
-                {m}x
+                {m >= 100 ? `${m}` : `${m}x`}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Bet & Drop Button */}
-      <div className="bg-[#0e1424] border border-amber-500/30 rounded-3xl p-4 shadow-xl space-y-3">
+      {/* Control Panel */}
+      <div className="bg-[#0e1424] border border-amber-500/30 rounded-3xl p-3 sm:p-4 shadow-xl space-y-3">
+        {/* Risk & Rows Selectors */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Risk Level */}
+          <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-2xl flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase">Risk Level:</span>
+            <div className="flex bg-slate-950 p-1 rounded-xl">
+              {(['low', 'medium', 'high'] as RiskLevel[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => {
+                    soundService.playClick();
+                    setRisk(r);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-black uppercase transition cursor-pointer ${
+                    risk === r
+                      ? r === 'high'
+                        ? 'bg-rose-600 text-white'
+                        : r === 'medium'
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-emerald-500 text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rows */}
+          <div className="bg-slate-900/80 border border-slate-800 p-2 rounded-2xl flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase">Rows:</span>
+            <div className="flex bg-slate-950 p-1 rounded-xl">
+              {[8, 10, 12, 14, 16].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => {
+                    soundService.playClick();
+                    setRows(num);
+                  }}
+                  className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-black transition cursor-pointer ${
+                    rows === num
+                      ? 'bg-amber-400 text-slate-950 shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Bet Selection */}
         <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs font-bold text-slate-400 uppercase">Ball Bet (₨):</span>
-          <div className="flex gap-1.5">
-            {[20, 50, 100, 200, 500, 1000].map((b) => (
+          <span className="text-xs font-bold text-slate-400 uppercase shrink-0">Bet (₨):</span>
+          <div className="flex gap-1.5 items-center">
+            {[20, 50, 100, 500, 1000, 2500].map((b) => (
               <button
                 key={b}
                 onClick={() => {
                   soundService.playChip();
                   setBet(b);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
                   bet === b
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-md scale-105'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400'
+                    ? 'bg-amber-400 text-slate-950 shadow scale-105'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                {b}
+                ₨ {b}
               </button>
             ))}
+            <button
+              onClick={() => {
+                soundService.playChip();
+                setBet(Math.max(10, Math.floor(bet / 2)));
+              }}
+              className="px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 cursor-pointer"
+            >
+              ½
+            </button>
+            <button
+              onClick={() => {
+                soundService.playChip();
+                setBet(bet * 2);
+              }}
+              className="px-2 py-1.5 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 cursor-pointer"
+            >
+              2×
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={dropBall}
-          className="w-full py-4 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-slate-950 font-black rounded-2xl text-base uppercase tracking-wider shadow-xl transition active:scale-95 cursor-pointer"
-        >
-          DROP PLINKO BALL (₨ {bet.toLocaleString()})
-        </button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => {
+              soundService.playClick();
+              setAutoDrop(!autoDrop);
+            }}
+            className={`py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition border ${
+              autoDrop
+                ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
+                : 'bg-slate-800 border-slate-700 text-amber-300 hover:bg-slate-700'
+            }`}
+          >
+            {autoDrop ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            <span>{autoDrop ? 'STOP AUTO' : 'AUTO DROP'}</span>
+          </button>
+
+          <button
+            onClick={dropBall}
+            className="col-span-2 py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 text-slate-950 font-black rounded-2xl text-sm sm:text-base uppercase tracking-wider shadow-xl transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>DROP BALL (₨ {bet.toLocaleString()})</span>
+          </button>
+        </div>
       </div>
     </div>
   );

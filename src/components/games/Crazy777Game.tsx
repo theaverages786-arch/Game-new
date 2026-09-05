@@ -3,6 +3,7 @@ import { ArrowLeft, Sparkles, RefreshCw, Trophy, Zap } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface Crazy777GameProps {
   userBalance: number;
@@ -42,13 +43,7 @@ export const Crazy777Game: React.FC<Crazy777GameProps> = ({
 
     setTimeout(() => {
       let winMult = 0;
-      const rand = Math.random();
-      const shouldWin =
-        adminSettings.rtpMode === 'high_win'
-          ? rand < 0.7
-          : adminSettings.rtpMode === 'house_edge'
-          ? rand < 0.25
-          : rand < 0.45;
+      const shouldWin = shouldPlayerWin('wg_crazy777', adminSettings, 0.44);
 
       const sp = SPECIAL_REEL_ITEMS[Math.floor(Math.random() * SPECIAL_REEL_ITEMS.length)];
       setSpecialReel(sp);

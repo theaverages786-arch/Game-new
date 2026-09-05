@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Play } from 'lucide-react';
+import { ArrowLeft, Sparkles, Trophy, Play, Volume2 } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration, COMMON_BET_CHIPS, formatPKR } from '../../services/gameEngine';
 
 interface AndarBaharProps {
   onBack: () => void;
@@ -72,15 +73,14 @@ export const AndarBaharGame: React.FC<AndarBaharProps> = ({
     let turn: 'andar' | 'bahar' = 'andar';
     let matchFound = false;
 
-    // Check if high win / house edge
-    const userWins =
-      adminSettings.rtpMode === 'high_win'
-        ? Math.random() < 0.7
-        : adminSettings.rtpMode === 'house_edge'
-        ? Math.random() < 0.3
-        : Math.random() < 0.5;
-
-    const forcedWinner = userWins ? side : side === 'andar' ? 'bahar' : 'andar';
+    // Check admin forced result & dynamic win probability
+    let forcedWinner: 'andar' | 'bahar';
+    if (adminSettings?.forcedResults && (adminSettings.forcedResults as any).andarBahar && (adminSettings.forcedResults as any).andarBahar !== 'random') {
+      forcedWinner = (adminSettings.forcedResults as any).andarBahar;
+    } else {
+      const userWins = shouldPlayerWin('cards_andar_bahar', adminSettings, 0.48);
+      forcedWinner = userWins ? side : side === 'andar' ? 'bahar' : 'andar';
+    }
 
     let cardDealStep = 0;
     const maxSteps = 16;

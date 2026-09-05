@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, CircleDollarSign } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface MoneyComingProps {
   onBack: () => void;
@@ -55,12 +56,7 @@ export const MoneyComingGame: React.FC<MoneyComingProps> = ({
   };
 
   const resolveOutcome = () => {
-    const isWin =
-      adminSettings.rtpMode === 'high_win'
-        ? Math.random() < 0.6
-        : adminSettings.rtpMode === 'house_edge'
-        ? Math.random() < 0.25
-        : Math.random() < 0.4;
+    const isWin = shouldPlayerWin('slots_money_coming', adminSettings, 0.44);
 
     let r1 = '0';
     let r2 = '0';

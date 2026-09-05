@@ -13,6 +13,7 @@ import {
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface SlotsGameProps {
   balance: number;
@@ -90,8 +91,8 @@ export const SlotsGame: React.FC<SlotsGameProps> = ({
     setLastWin(null);
     setWinMessage(null);
 
-    const spinDuration = isTurbo ? 600 : 1500;
-    const intervalTick = isTurbo ? 50 : 90;
+    const spinDuration = isTurbo ? 220 : 1200;
+    const intervalTick = isTurbo ? 35 : 80;
 
     let elapsed = 0;
     const tickInterval = setInterval(() => {
@@ -135,9 +136,8 @@ export const SlotsGame: React.FC<SlotsGameProps> = ({
           ]);
       }
     } else {
-      // Standard RTP calculation
-      const hitRate = adminSettings.rtpMode === 'high_win' ? 0.6 : adminSettings.rtpMode === 'house_edge' ? 0.25 : 0.42;
-      const isWin = Math.random() < hitRate;
+      // Dynamic outcome governed by shouldPlayerWin
+      const isWin = shouldPlayerWin('slots_777', adminSettings, 0.42);
 
       if (isWin) {
         // Pick a winning symbol

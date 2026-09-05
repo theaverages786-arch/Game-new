@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Crosshair, Zap, Play } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface FishingGameProps {
   onBack: () => void;
@@ -158,14 +159,13 @@ export const FishingGame: React.FC<FishingGameProps> = ({
 
       const newHp = hitFish.hp - 1;
 
-      // Check if fish dies
-      const hitRtpBoost = adminSettings.rtpMode === 'high_win';
-      const isDead = newHp <= 0 || (hitRtpBoost && Math.random() < 0.25);
+      // Check if fish dies governed by game engine & RTP
+      const isLucky = shouldPlayerWin('fishing_ocean_king', adminSettings, 0.35);
+      const isDead = newHp <= 0 || (isLucky && Math.random() < 0.4);
 
       if (isDead) {
         const reward = Math.round(bulletPower * hitFish.multiplier);
-        soundService.playFishCatch();
-        if (hitFish.multiplier >= 30) soundService.playJackpot();
+        playOutcomeCelebration(reward, bulletPower, hitFish.multiplier >= 30);
         onUpdateBalance(userBalance - bulletPower + reward);
         onRecordBet('fishing_ocean_king', 'Fish Hunter Ocean King', bulletPower, reward, hitFish.multiplier);
 

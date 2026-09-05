@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Gem, Play } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface FortuneGemsProps {
   onBack: () => void;
@@ -88,12 +89,7 @@ export const FortuneGemsGame: React.FC<FortuneGemsProps> = ({
   };
 
   const resolveSpin = () => {
-    const isWin =
-      adminSettings.rtpMode === 'high_win'
-        ? Math.random() < 0.65
-        : adminSettings.rtpMode === 'house_edge'
-        ? Math.random() < 0.25
-        : Math.random() < 0.42;
+    const isWin = shouldPlayerWin('slots_fortune_gems', adminSettings, 0.44);
 
     let finalReels: GemSymbol[][];
     let finalMult = MULTIPLIERS[Math.floor(Math.random() * MULTIPLIERS.length)];

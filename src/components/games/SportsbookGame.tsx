@@ -3,6 +3,7 @@ import { ArrowLeft, Trophy, Flame, Clock, CheckCircle2, ChevronRight } from 'luc
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface SportsbookGameProps {
   userBalance: number;
@@ -136,18 +137,12 @@ export const SportsbookGame: React.FC<SportsbookGameProps> = ({
 
     setPlacedBets((prev) => [newBet, ...prev]);
 
-    // Instant simulated match resolution after 5 seconds
+    // Instant simulated match resolution after 4 seconds
     setTimeout(() => {
-      const isWin =
-        adminSettings.rtpMode === 'high_win'
-          ? Math.random() < 0.8
-          : adminSettings.rtpMode === 'house_edge'
-          ? Math.random() < 0.3
-          : Math.random() < 0.55;
+      const isWin = shouldPlayerWin(`${provider}_sports`, adminSettings, 0.50);
 
       if (isWin) {
-        soundService.playWin();
-        triggerWinConfetti();
+        playOutcomeCelebration(potentialWin, betAmount);
         onUpdateBalance(userBalance - betAmount + potentialWin);
         onRecordBet(
           `${provider}_sports`,

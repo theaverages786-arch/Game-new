@@ -12,6 +12,7 @@ import {
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface ColorPredictionGameProps {
   balance: number;
@@ -39,7 +40,7 @@ export const ColorPredictionGame: React.FC<ColorPredictionGameProps> = ({
   onBack,
   adminSettings,
 }) => {
-  const [modeTime, setModeTime] = useState<1 | 3>(1); // 1 Min or 3 Min
+  const [modeTime, setModeTime] = useState<number>(0.5); // 0.5 (30s), 1 (1 Min), 3 (3 Min)
   const [timeLeft, setTimeLeft] = useState(30);
   const [period, setPeriod] = useState('2026082601');
   const [selectedChips, setSelectedChips] = useState<BetSelection[]>([]);
@@ -78,11 +79,11 @@ export const ColorPredictionGame: React.FC<ColorPredictionGameProps> = ({
   }, [modeTime, selectedChips]);
 
   const resolveRound = () => {
-    // Determine winning number 0-9 based on admin forced results & RTP
+    // Determine winning number 0-9 based on admin forced results & gameEngine
     let num = Math.floor(Math.random() * 10);
 
-    // Admin Forced Result Override
-    if (adminSettings.forcedResults?.wingo && adminSettings.forcedResults.wingo !== 'random') {
+    // 1. Admin Forced Result Override
+    if (adminSettings?.forcedResults?.wingo && adminSettings.forcedResults.wingo !== 'random') {
       const forcedColor = adminSettings.forcedResults.wingo;
       if (forcedColor === 'green') {
         num = [1, 3, 7, 9][Math.floor(Math.random() * 4)];
@@ -91,15 +92,29 @@ export const ColorPredictionGame: React.FC<ColorPredictionGameProps> = ({
       } else if (forcedColor === 'violet') {
         num = [0, 5][Math.floor(Math.random() * 2)];
       }
-    } else if (adminSettings.rtpMode === 'high_win' && selectedChips.length > 0) {
-      // Favor user's bet if possible
-      const firstNumBet = selectedChips.find((b) => b.type === 'number');
-      if (firstNumBet && Math.random() < 0.5) {
-        num = parseInt(firstNumBet.value);
+    } else if (selectedChips.length > 0) {
+      const userShouldWin = shouldPlayerWin('color_wingo', adminSettings, 0.45);
+      if (userShouldWin) {
+        // Favor user's bet
+        const firstNumBet = selectedChips.find((b) => b.type === 'number');
+        if (firstNumBet) {
+          num = parseInt(firstNumBet.value);
+        } else {
+          const firstColor = selectedChips.find((b) => b.type === 'color');
+          if (firstColor?.value === 'green') num = [1, 3, 7, 9][Math.floor(Math.random() * 4)];
+          else if (firstColor?.value === 'red') num = [2, 4, 6, 8][Math.floor(Math.random() * 4)];
+          else if (firstColor?.value === 'violet') num = [0, 5][Math.floor(Math.random() * 2)];
+          else {
+            const firstSize = selectedChips.find((b) => b.type === 'size');
+            if (firstSize?.value.toLowerCase() === 'big') num = 7;
+            else num = 3;
+          }
+        }
       } else {
-        const firstColor = selectedChips.find((b) => b.type === 'color');
-        if (firstColor?.value === 'green') num = [1, 3, 7, 9][Math.floor(Math.random() * 4)];
-        if (firstColor?.value === 'red') num = [2, 4, 6, 8][Math.floor(Math.random() * 4)];
+        // Player should lose: pick outcome avoiding user bets if possible
+        const userColors = selectedChips.filter(b => b.type === 'color').map(b => b.value);
+        if (userColors.includes('green')) num = [2, 4, 6, 8][Math.floor(Math.random() * 4)];
+        else if (userColors.includes('red')) num = [1, 3, 7, 9][Math.floor(Math.random() * 4)];
       }
     }
 
@@ -204,36 +219,61 @@ export const ColorPredictionGame: React.FC<ColorPredictionGameProps> = ({
           <span>Exit Game</span>
         </button>
 
-        {/* 1 Min / 3 Min Toggle */}
+        {/* WinGo Modes (30s, 1 Min, 3 Min) */}
         <div className="flex bg-slate-900 border border-amber-500/30 p-1 rounded-2xl">
           <button
             onClick={() => {
               soundService.playClick();
-              setModeTime(1);
+              setModeTime(0.5);
+              setTimeLeft(30);
             }}
-            className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+            className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+              modeTime === 0.5 ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            ⚡ 30s Fast
+          </button>
+          <button
+            onClick={() => {
+              soundService.playClick();
+              setModeTime(1);
+              setTimeLeft(60);
+            }}
+            className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
               modeTime === 1 ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            WinGo 1 Min
+            1 Min
           </button>
           <button
             onClick={() => {
               soundService.playClick();
               setModeTime(3);
+              setTimeLeft(180);
             }}
-            className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+            className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
               modeTime === 3 ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            WinGo 3 Min
+            3 Min
           </button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              soundService.playClick();
+              resolveRound();
+              setTimeLeft(Math.round(modeTime * 60));
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black transition cursor-pointer shadow"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Draw Now</span>
+          </button>
           <button
             onClick={() => setActiveTab(activeTab === 'rules' ? 'game' : 'rules')}
-            className="p-1.5 rounded-xl bg-slate-800 text-amber-400 border border-slate-700 text-xs font-bold"
+            className="p-1.5 rounded-xl bg-slate-800 text-amber-400 border border-slate-700 text-xs font-bold cursor-pointer"
           >
             <HelpCircle className="w-4 h-4" />
           </button>

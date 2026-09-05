@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, CircleDot, Play } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { playOutcomeCelebration } from '../../services/gameEngine';
 
 interface RouletteProps {
   onBack: () => void;
@@ -23,6 +24,7 @@ export const RouletteGame: React.FC<RouletteProps> = ({
   const [selectedChip, setSelectedChip] = useState(50);
   const [placedBets, setPlacedBets] = useState<{ [key: string]: number }>({});
   const [spinning, setSpinning] = useState(false);
+  const [isTurbo, setIsTurbo] = useState(false);
   const [winningNumber, setWinningNumber] = useState<number | null>(null);
   const [lastWin, setLastWin] = useState(0);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
@@ -32,6 +34,20 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     (acc, key) => acc + (placedBets[key] || 0),
     0
   );
+
+  const doubleBets = () => {
+    if (spinning || totalBet === 0) return;
+    if (userBalance < totalBet * 2) {
+      alert('Insufficient balance to double!');
+      return;
+    }
+    soundService.playChipStack();
+    const doubled: { [key: string]: number } = {};
+    Object.keys(placedBets).forEach((k) => {
+      doubled[k] = placedBets[k] * 2;
+    });
+    setPlacedBets(doubled);
+  };
 
   const addBet = (spot: string) => {
     if (spinning) return;
@@ -69,7 +85,7 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     setResultMsg(null);
 
     // Spin animation with sound ticks
-    const extraRotations = 5 + Math.floor(Math.random() * 5);
+    const extraRotations = isTurbo ? 2 : 5 + Math.floor(Math.random() * 5);
     const randomAngle = Math.floor(Math.random() * 360);
     const newRot = wheelRotation + extraRotations * 360 + randomAngle;
     setWheelRotation(newRot);
@@ -78,14 +94,14 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     const tickInterval = setInterval(() => {
       soundService.playSpinTick();
       count++;
-      if (count >= 15) {
+      if (count >= (isTurbo ? 5 : 15)) {
         clearInterval(tickInterval);
       }
-    }, 120);
+    }, isTurbo ? 50 : 120);
 
     setTimeout(() => {
       resolveWheelOutcome();
-    }, 1800);
+    }, isTurbo ? 350 : 1800);
   };
 
   const resolveWheelOutcome = () => {
@@ -159,8 +175,7 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     setSpinning(false);
 
     if (totalWon > 0) {
-      soundService.playWin();
-      if (totalWon >= totalBet * 5) soundService.playJackpot();
+      playOutcomeCelebration(totalWon, totalBet, totalWon >= totalBet * 5);
       onUpdateBalance(userBalance - totalBet + totalWon);
       const mult = totalBet > 0 ? Number((totalWon / totalBet).toFixed(2)) : 0;
       onRecordBet('casino_roulette', 'European Roulette 777', totalBet, totalWon, mult);
@@ -314,13 +329,34 @@ export const RouletteGame: React.FC<RouletteProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             disabled={spinning || totalBet === 0}
             onClick={clearBets}
-            className="px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs rounded-2xl cursor-pointer"
+            className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs rounded-2xl cursor-pointer border border-slate-700 disabled:opacity-50"
           >
-            CLEAR BETS
+            CLEAR
+          </button>
+          <button
+            disabled={spinning || totalBet === 0}
+            onClick={doubleBets}
+            className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-amber-300 font-black text-xs rounded-2xl cursor-pointer border border-slate-700 disabled:opacity-50"
+          >
+            2X DOUBLE
+          </button>
+          <button
+            disabled={spinning}
+            onClick={() => {
+              soundService.playClick();
+              setIsTurbo(!isTurbo);
+            }}
+            className={`px-3 py-3 font-black text-xs rounded-2xl cursor-pointer border transition ${
+              isTurbo
+                ? 'bg-amber-400 text-slate-950 border-amber-300 shadow'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+          >
+            {isTurbo ? '⚡ TURBO' : 'TURBO OFF'}
           </button>
           <button
             disabled={spinning}
@@ -331,7 +367,7 @@ export const RouletteGame: React.FC<RouletteProps> = ({
                 : 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 hover:from-amber-300'
             }`}
           >
-            {spinning ? 'WHEEL SPINNING...' : `SPIN WHEEL (TOTAL BET ₨ ${totalBet})`}
+            {spinning ? 'SPINNING...' : `SPIN (${totalBet > 0 ? `₨ ${totalBet}` : 'PLACE BETS'})`}
           </button>
         </div>
       </div>

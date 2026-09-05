@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Zap, Flame, Info, RotateCcw, Play } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface SuperAceGameProps {
   onBack: () => void;
@@ -104,13 +105,8 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
   };
 
   const resolveSpin = () => {
-    // Generate final grid
-    const isWin =
-      adminSettings.rtpMode === 'high_win'
-        ? Math.random() < 0.65
-        : adminSettings.rtpMode === 'house_edge'
-        ? Math.random() < 0.25
-        : Math.random() < 0.45;
+    // Generate final grid governed by master outcome & RTP
+    const isWin = shouldPlayerWin('slots_super_ace', adminSettings, 0.45);
 
     let finalGrid: SymbolDef[][];
 

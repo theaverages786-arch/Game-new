@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Bomb, Diamond, Sparkles, Trophy, Shield } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Bomb, 
+  Diamond, 
+  Sparkles, 
+  Trophy, 
+  Shield, 
+  Zap, 
+  Volume2, 
+  VolumeX,
+  FastForward,
+  Shuffle
+} from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration, formatPKR } from '../../services/gameEngine';
 
 interface MinesGameProps {
   balance: number;
@@ -31,16 +44,20 @@ export const MinesGame: React.FC<MinesGameProps> = ({
   const [gemsFound, setGemsFound] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [hasWon, setHasWon] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(!soundService.isEnabled());
 
-  // Multiplier formula based on mines & gems found
+  const quickBets = [50, 100, 200, 500, 1000, 2000];
+  const mineOptions = [1, 2, 3, 5, 10, 15, 20, 24];
+
+  // Mathematical Multiplier Formula (Standard 96% RTP base)
   const calculateMultiplier = (mines: number, gems: number) => {
     if (gems === 0) return 1.0;
     let prob = 1.0;
     for (let i = 0; i < gems; i++) {
       prob *= (25 - mines - i) / (25 - i);
     }
-    const rawMulti = (1 / prob) * 0.96; // 96% RTP base
-    return +Math.max(1.05, rawMulti).toFixed(2);
+    const raw = (1 / prob) * 0.96;
+    return +Math.max(1.04, raw).toFixed(2);
   };
 
   const currentMultiplier = calculateMultiplier(mineCount, gemsFound);
@@ -57,7 +74,6 @@ export const MinesGame: React.FC<MinesGameProps> = ({
 
     // Place mines on grid
     const indices = Array.from({ length: 25 }, (_, i) => i);
-    // Shuffle
     for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
@@ -84,12 +100,9 @@ export const MinesGame: React.FC<MinesGameProps> = ({
     // Admin Outcome Matrix & Forcer Checks
     const forced = adminSettings?.forcedResults?.mines;
     const masterMode = adminSettings?.masterOutcomeMode;
-    const gameRtp = adminSettings?.gameRtpOverrides?.['mines_treasure'] ?? adminSettings?.rtpPercentage ?? 96;
-    const globalWin = adminSettings?.globalWinRate ?? 65;
 
     if (masterMode === 'always_win' || forced === 'safe') {
       if (tile.isMine) {
-        // Swap mine with an unrevealed safe tile
         const safeIdx = grid.findIndex((t, idx) => !t.isMine && !t.revealed && idx !== index);
         if (safeIdx !== -1) {
           grid[safeIdx].isMine = true;
@@ -101,9 +114,9 @@ export const MinesGame: React.FC<MinesGameProps> = ({
       tile.isMine = true;
       grid[index].isMine = true;
     } else if (tile.isMine) {
-      // Dynamic RTP / Win rate calculation: give chance to dodge bomb
-      const randomRoll = Math.random() * 100;
-      if (randomRoll < (globalWin - 20) && (gameRtp > 95)) {
+      // Check if user is favored this round
+      const shouldWin = shouldPlayerWin('mines_treasure', adminSettings, 0.55);
+      if (shouldWin && gemsFound < 3) {
         const safeIdx = grid.findIndex((t, idx) => !t.isMine && !t.revealed && idx !== index);
         if (safeIdx !== -1) {
           grid[safeIdx].isMine = true;
@@ -114,28 +127,39 @@ export const MinesGame: React.FC<MinesGameProps> = ({
     }
 
     if (tile.isMine) {
-      // Hit a bomb!
-      soundService.playCrash();
+      // Hit Bomb!
+      soundService.playExplosion();
       const revealedGrid = grid.map((t) => ({ ...t, revealed: true }));
       setGrid(revealedGrid);
       setGameOver(true);
       setIsPlaying(false);
       onBet(betAmount, 0, `Mines (${mineCount} mines) hit bomb after ${gemsFound} gems`);
     } else {
-      // Found a Gem!
-      soundService.playCoin();
+      // Diamond Found!
+      const newGems = gemsFound + 1;
+      soundService.playDiamondSparkle(newGems);
       const updatedGrid = [...grid];
       updatedGrid[index].revealed = true;
       setGrid(updatedGrid);
-
-      const newGems = gemsFound + 1;
       setGemsFound(newGems);
 
-      // Check if all gems discovered
+      // Check if board fully cleared of gems
       if (newGems === 25 - mineCount) {
         handleCashOut(newGems);
       }
     }
+  };
+
+  // 1,000,000x Fast Random Auto Pick
+  const handleRandomPick = () => {
+    if (!isPlaying || gameOver) return;
+    const unrevealedIndices = grid
+      .map((t, idx) => (!t.revealed ? idx : -1))
+      .filter((i) => i !== -1);
+
+    if (unrevealedIndices.length === 0) return;
+    const randomIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
+    handleTileClick(randomIdx);
   };
 
   const handleCashOut = (gems = gemsFound) => {
@@ -144,183 +168,212 @@ export const MinesGame: React.FC<MinesGameProps> = ({
     const finalMultiplier = calculateMultiplier(mineCount, gems);
     const winAmt = Math.round(betAmount * finalMultiplier);
 
-    soundService.playWin();
-    triggerWinConfetti();
+    playOutcomeCelebration(winAmt, betAmount, finalMultiplier >= 3);
 
-    // Reveal whole board
+    // Reveal entire board
     const revealedGrid = grid.map((t) => ({ ...t, revealed: true }));
     setGrid(revealedGrid);
-    setGameOver(true);
     setIsPlaying(false);
+    setGameOver(true);
     setHasWon(true);
 
-    onBet(betAmount, winAmt, `Mines (${mineCount} mines) Cashed out ${finalMultiplier}x with ${gems} gems`);
+    onBet(betAmount, winAmt, `Mines Cashed Out (${mineCount} mines, ${gems} gems) @ ${finalMultiplier}x`);
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 text-white">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <button
-          onClick={() => {
-            soundService.playClick();
-            onBack();
-          }}
-          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 text-amber-400" />
-          <span>Exit Game</span>
-        </button>
+    <div className="w-full max-w-5xl mx-auto p-2 sm:p-4 text-white select-none">
+      {/* Top Header */}
+      <div className="flex items-center justify-between gap-2 mb-3 bg-[#0c1222] border border-slate-800 p-2.5 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              soundService.playClick();
+              onBack();
+            }}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-700 transition cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">Lobby</span>
+          </button>
 
-        <div className="flex items-center gap-2 bg-[#121826] border border-amber-500/30 px-3 py-1 rounded-2xl">
-          <Diamond className="w-4 h-4 text-cyan-400 animate-pulse" />
-          <span className="text-xs font-bold text-slate-200">
-            Gems Found: <strong className="text-amber-300 font-mono">{gemsFound} / {25 - mineCount}</strong>
-          </span>
+          <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-xl">
+            <Diamond className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-black tracking-wider text-cyan-300">SPRIBE MINES PRO</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const muted = soundService.toggleSound();
+              setSoundMuted(!muted);
+            }}
+            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 border border-slate-700 transition cursor-pointer"
+          >
+            {soundMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Side: 5x5 Mines Grid */}
-        <div className="lg:col-span-2 bg-[#090d18] border-2 border-amber-500/40 rounded-3xl p-4 sm:p-6 shadow-2xl relative">
-          <div className="grid grid-cols-5 gap-2 sm:gap-3 aspect-square max-w-md mx-auto">
-            {grid.map((tile, idx) => (
-              <button
-                key={idx}
-                disabled={!isPlaying || tile.revealed}
-                onClick={() => handleTileClick(idx)}
-                className={`rounded-2xl font-black text-2xl flex items-center justify-center transition-all transform active:scale-95 shadow-md border cursor-pointer ${
-                  tile.revealed
-                    ? tile.isMine
-                      ? 'bg-rose-700/80 border-rose-500 text-white animate-bounce'
-                      : 'bg-gradient-to-br from-cyan-600 to-blue-700 border-cyan-400 text-white animate-in zoom-in-75'
-                    : isPlaying
-                    ? 'bg-gradient-to-b from-[#1c263d] to-[#121a2c] hover:from-[#253250] hover:to-[#1a253e] border-amber-500/30 text-amber-300/40 hover:border-amber-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-700 cursor-not-allowed'
-                }`}
-              >
-                {tile.revealed ? (
-                  tile.isMine ? (
-                    <Bomb className="w-8 h-8 text-white fill-rose-500" />
-                  ) : (
-                    <Diamond className="w-8 h-8 text-cyan-200 fill-cyan-400" />
-                  )
-                ) : (
-                  <span className="text-xs font-mono opacity-20">{idx + 1}</span>
-                )}
-              </button>
-            ))}
+        {/* Left Side: Control Panel */}
+        <div className="bg-[#0e1628] border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col gap-3.5">
+          {/* Bet Amount */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-slate-400 font-bold">Bet Amount</span>
+              <span className="text-amber-400 font-mono font-bold">{formatPKR(betAmount)}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {quickBets.map((amt) => (
+                <button
+                  key={amt}
+                  disabled={isPlaying}
+                  onClick={() => {
+                    soundService.playChip();
+                    setBetAmount(amt);
+                  }}
+                  className={`py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    betAmount === amt
+                      ? 'bg-amber-400 text-slate-950 font-black shadow'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {formatPKR(amt)}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Win Result Overlay */}
-          {hasWon && (
-            <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 text-slate-950 p-4 rounded-3xl font-black text-center shadow-2xl border-2 border-white animate-in zoom-in-90 z-20">
-              <div className="text-base sm:text-lg uppercase">🎉 CASHED OUT SUCCESSFULLY!</div>
-              <div className="text-2xl sm:text-3xl font-mono mt-1">
-                +₨ {(betAmount * currentMultiplier).toFixed(0)} ({currentMultiplier}x)
-              </div>
+          {/* Mines Selector */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-slate-400 font-bold">Number of Mines</span>
+              <span className="text-rose-400 font-mono font-bold">{mineCount} Bombs</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {mineOptions.map((cnt) => (
+                <button
+                  key={cnt}
+                  disabled={isPlaying}
+                  onClick={() => {
+                    soundService.playClick();
+                    setMineCount(cnt);
+                  }}
+                  className={`py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    mineCount === cnt
+                      ? 'bg-rose-500 text-white font-black shadow'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {cnt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Profit Tracker Preview */}
+          <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl flex flex-col gap-1.5 text-xs font-mono">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Current Multiplier:</span>
+              <span className="text-emerald-400 font-bold">{currentMultiplier.toFixed(2)}x</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Next Multiplier:</span>
+              <span className="text-cyan-400 font-bold">{nextMultiplier.toFixed(2)}x</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-800 pt-1.5">
+              <span className="text-slate-300 font-bold">Current Payout:</span>
+              <span className="text-amber-400 font-black">
+                {formatPKR(Math.round(betAmount * currentMultiplier))}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          {!isPlaying ? (
+            <button
+              onClick={handleStartGame}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-lg shadow-xl shadow-emerald-500/30 transition transform active:scale-95 cursor-pointer"
+            >
+              START GAME ({formatPKR(betAmount)})
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleCashOut()}
+                disabled={gemsFound === 0}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-lg shadow-xl shadow-emerald-500/40 transition transform active:scale-95 cursor-pointer disabled:opacity-50 animate-pulse"
+              >
+                CASHOUT {formatPKR(Math.round(betAmount * currentMultiplier))} ({currentMultiplier.toFixed(2)}x)
+              </button>
+
+              <button
+                onClick={handleRandomPick}
+                className="w-full py-2.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span>1-CLICK AUTO PICK (FAST)</span>
+              </button>
             </div>
           )}
         </div>
 
-        {/* Right Side: Betting Controls & Multiplier progression */}
-        <div className="bg-[#121827] border border-amber-500/30 rounded-3xl p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xl">
-          <div className="space-y-4">
-            {/* Bet Amount */}
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
-                <span>Bet Amount</span>
-                <span className="text-amber-400 font-mono">₨ {betAmount}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[50, 100, 200, 500, 1000, 2500].map((amt) => (
-                  <button
-                    key={amt}
-                    disabled={isPlaying}
-                    onClick={() => {
-                      soundService.playClick();
-                      setBetAmount(amt);
-                    }}
-                    className={`py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      betAmount === amt
-                        ? 'bg-amber-400 text-slate-950 font-black'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    ₨ {amt}
-                  </button>
-                ))}
-              </div>
+        {/* Right Side: 5x5 Mines Grid */}
+        <div className="lg:col-span-2 bg-[#090f1d] border-2 border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col justify-center">
+          {/* Header Stats */}
+          <div className="flex items-center justify-between mb-4 px-1 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                <Diamond className="w-4 h-4" />
+                {gemsFound} Gems Found
+              </span>
+              <span className="text-slate-500">•</span>
+              <span className="text-rose-400 font-bold flex items-center gap-1">
+                <Bomb className="w-4 h-4" />
+                {mineCount} Mines
+              </span>
             </div>
 
-            {/* Mines Count Selector (1 to 24) */}
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 mb-1.5">
-                <span className="flex items-center gap-1">
-                  <Bomb className="w-3.5 h-3.5 text-rose-400" />
-                  Mines Count
-                </span>
-                <span className="text-rose-400 font-bold">{mineCount} Mines</span>
+            {hasWon && (
+              <div className="bg-emerald-500/20 text-emerald-300 px-3 py-0.5 rounded-full border border-emerald-500/40 font-bold text-xs">
+                🎉 Won {formatPKR(Math.round(betAmount * currentMultiplier))}!
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[1, 3, 5, 10, 15, 20, 24].map((count) => (
-                  <button
-                    key={count}
-                    disabled={isPlaying}
-                    onClick={() => {
-                      soundService.playClick();
-                      setMineCount(count);
-                    }}
-                    className={`py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      mineCount === count
-                        ? 'bg-rose-600 text-white font-black'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {count} 💣
-                  </button>
-                ))}
+            )}
+            {gameOver && !hasWon && (
+              <div className="bg-rose-500/20 text-rose-300 px-3 py-0.5 rounded-full border border-rose-500/40 font-bold text-xs">
+                💥 BOOM! Game Over
               </div>
-            </div>
-
-            {/* Multiplier Stats Card */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 space-y-2 text-xs font-mono">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Current Payout:</span>
-                <span className="text-emerald-400 font-bold text-sm">
-                  {currentMultiplier}x (₨ {(betAmount * currentMultiplier).toFixed(0)})
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Next Tile Payout:</span>
-                <span className="text-cyan-400 font-bold">{nextMultiplier}x</span>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Action Button: Start or Cash Out */}
-          {isPlaying ? (
-            <button
-              disabled={gemsFound === 0}
-              onClick={() => handleCashOut()}
-              className={`w-full py-4 rounded-2xl font-black text-base shadow-xl transition-all transform active:scale-95 cursor-pointer ${
-                gemsFound > 0
-                  ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-slate-950 shadow-emerald-500/30 animate-pulse'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {gemsFound > 0
-                ? `CASH OUT (₨ ${(betAmount * currentMultiplier).toFixed(0)})`
-                : 'Pick a Tile...'}
-            </button>
-          ) : (
-            <button
-              onClick={handleStartGame}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-lg shadow-xl shadow-amber-500/30 transition-all transform active:scale-95 cursor-pointer"
-            >
-              START GAME (₨ {betAmount})
-            </button>
-          )}
+          {/* 5x5 Grid */}
+          <div className="grid grid-cols-5 gap-2 sm:gap-3 aspect-square max-w-[420px] mx-auto w-full">
+            {grid.map((tile, idx) => (
+              <button
+                key={idx}
+                disabled={!isPlaying || tile.revealed || gameOver}
+                onClick={() => handleTileClick(idx)}
+                className={`w-full h-full rounded-2xl flex items-center justify-center transition-all duration-200 transform active:scale-95 cursor-pointer shadow-lg select-none ${
+                  !tile.revealed
+                    ? 'bg-gradient-to-b from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] border border-slate-700/80 shadow-slate-900/80'
+                    : tile.isMine
+                    ? 'bg-gradient-to-b from-rose-600 to-red-800 border-2 border-rose-400 animate-in zoom-in-75'
+                    : 'bg-gradient-to-b from-emerald-600/90 to-teal-800/90 border-2 border-cyan-300 animate-in zoom-in-75'
+                }`}
+              >
+                {tile.revealed && (
+                  <span>
+                    {tile.isMine ? (
+                      <Bomb className="w-7 h-7 sm:w-8 sm:h-8 text-white animate-pulse" />
+                    ) : (
+                      <Diamond className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-200 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                    )}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

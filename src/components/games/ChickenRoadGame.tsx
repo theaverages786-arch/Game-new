@@ -3,6 +3,7 @@ import { ArrowLeft, Volume2, ShieldCheck, Flame, Sparkles, Coins, Zap } from 'lu
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
+import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
 
 interface ChickenRoadGameProps {
   userBalance: number;
@@ -58,17 +59,16 @@ export const ChickenRoadGame: React.FC<ChickenRoadGameProps> = ({
     const nextStep = currentStep + 1;
     const laneConfig = LANES[nextStep - 1];
 
-    // Determine crash probability
-    let isCrash = Math.random() < laneConfig.danger;
-    if (adminSettings.rtpMode === 'high_win') isCrash = Math.random() < laneConfig.danger * 0.5;
-    if (adminSettings.rtpMode === 'house_edge') isCrash = Math.random() < laneConfig.danger * 1.5;
+    // Determine crash probability governed by master outcome and RTP
+    const mustWin = shouldPlayerWin('inout_chicken_road', adminSettings, 0.70);
+    let isCrash = !mustWin && Math.random() < laneConfig.danger;
 
     if (isCrash) {
-      soundService.playLose();
+      soundService.playExplosion();
       setGameState('crashed');
       onRecordBet('inout_chicken_road', 'Chicken Road 2.0', betAmount, 0, 0);
     } else {
-      soundService.playCoin();
+      soundService.playDiamondSparkle(nextStep);
       setCurrentStep(nextStep);
       setChickenPosition(nextStep);
 
@@ -85,8 +85,7 @@ export const ChickenRoadGame: React.FC<ChickenRoadGameProps> = ({
     const mult = overrideMult || LANES[currentStep - 1].mult;
     const win = Math.round(betAmount * mult);
 
-    soundService.playWin();
-    triggerWinConfetti();
+    playOutcomeCelebration(win, betAmount, mult >= 3);
     onUpdateBalance(userBalance + win);
     setLastWin(win);
     setGameState('won');
