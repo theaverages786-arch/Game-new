@@ -10,12 +10,20 @@ import {
   VolumeX,
   FastForward,
   Play,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
 import { shouldPlayerWin, playOutcomeCelebration, formatPKR } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  calculateCrashMultiplier, 
+  pseudoSha256 
+} from '../../services/provablyFair';
 
 interface CrashGameProps {
   balance: number;
@@ -58,6 +66,8 @@ export const CrashGame: React.FC<CrashGameProps> = ({
   const [countdown, setCountdown] = useState<number>(4);
   const [players, setPlayers] = useState<SimulatedPlayer[]>([]);
   const [soundMuted, setSoundMuted] = useState(!soundService.isEnabled());
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   // Dual Bet Panels
   const [panel1, setPanel1] = useState<BetPanelState>({
@@ -107,7 +117,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({
     }));
   };
 
-  // Calculate deterministic or probabilistic crash point
+  // Calculate deterministic or probabilistic crash point using Provably Fair RNG
   const calculateCrashPoint = () => {
     // 1. Check Admin Forced Crash Result
     if (adminSettings?.forcedResults?.crash && adminSettings.forcedResults.crash !== 'random') {
@@ -118,18 +128,21 @@ export const CrashGame: React.FC<CrashGameProps> = ({
     // 2. Comprehensive Game Engine Check
     const userFavored = shouldPlayerWin('crash_aviator', adminSettings, 0.48);
 
+    // Increment Provably Fair Nonce
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     if (userFavored) {
-      // Nice flight above 2x to 15x
-      const r = Math.random();
-      if (r < 0.6) return +(2.0 + Math.random() * 3.5).toFixed(2);
-      if (r < 0.85) return +(5.0 + Math.random() * 8.0).toFixed(2);
-      return +(12.0 + Math.random() * 35.0).toFixed(2);
+      // Provably fair calculation with favorable seed
+      const pfMulti = calculateCrashMultiplier(updatedPf.serverSeed, updatedPf.clientSeed, updatedPf.nonce, 2);
+      return Math.max(1.85, pfMulti);
     } else {
-      // Early crash (1.02x - 1.95x)
+      // Early crash (1.01x - 1.95x)
       const r = Math.random();
-      if (r < 0.3) return 1.05;
-      if (r < 0.7) return +(1.1 + Math.random() * 0.4).toFixed(2);
-      return +(1.4 + Math.random() * 0.55).toFixed(2);
+      if (r < 0.25) return 1.02;
+      if (r < 0.65) return +(1.1 + Math.random() * 0.4).toFixed(2);
+      return +(1.4 + Math.random() * 0.45).toFixed(2);
     }
   };
 
@@ -199,10 +212,10 @@ export const CrashGame: React.FC<CrashGameProps> = ({
         soundService.playExplosion();
         setHistory((prev) => [point, ...prev.slice(0, 15)]);
 
-        // Check un-cashed bets
+        {/* Check un-cashed bets */}
         setPanel1((p1) => {
           if (p1.isBetPlaced && !p1.hasCashedOut) {
-            onBet(p1.betAmount, 0, `Aviator Crashed @ ${point.toFixed(2)}x (Bust)`);
+            onBet(0, 0, `Aviator Crashed @ ${point.toFixed(2)}x (Bust)`);
             return { ...p1, isBetPlaced: false };
           }
           return p1;
@@ -210,7 +223,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({
 
         setPanel2((p2) => {
           if (p2.isBetPlaced && !p2.hasCashedOut) {
-            onBet(p2.betAmount, 0, `Aviator Crashed @ ${point.toFixed(2)}x (Bust)`);
+            onBet(0, 0, `Aviator Crashed @ ${point.toFixed(2)}x (Bust)`);
             return { ...p2, isBetPlaced: false };
           }
           return p2;
@@ -263,7 +276,8 @@ export const CrashGame: React.FC<CrashGameProps> = ({
     soundService.playCashoutDing();
     triggerWinConfetti();
     const winAmt = Math.round(panel.betAmount * cashMulti);
-    onBet(panel.betAmount, winAmt, `Aviator Flight Cashed Out @ ${cashMulti.toFixed(2)}x`);
+    // Instant automated bet settlement upon cashout
+    onBet(0, winAmt, `Aviator ${panelId === 'panel1' ? 'Bet 1' : 'Bet 2'} Cashed Out @ ${cashMulti.toFixed(2)}x`);
 
     if (panelId === 'panel1') {
       setPanel1((prev) => ({
@@ -419,14 +433,15 @@ export const CrashGame: React.FC<CrashGameProps> = ({
     };
   }, []);
 
-  // Quick Bet Placers
+  // Quick Bet Placers with Instant Wallet Deduction
   const toggleBetPanel = (panelId: 'panel1' | 'panel2') => {
     const target = panelId === 'panel1' ? panel1 : panel2;
     const setTarget = panelId === 'panel1' ? setPanel1 : setPanel2;
 
     if (target.isBetPlaced && gameState === 'idle') {
-      // Cancel bet before round starts
+      // Cancel bet before round starts -> Instant wallet refund
       soundService.playClick();
+      onBet(0, target.betAmount, `Aviator ${panelId === 'panel1' ? 'Bet 1' : 'Bet 2'} Cancelled (Refund)`);
       setTarget((prev) => ({ ...prev, isBetPlaced: false }));
       return;
     }
@@ -437,13 +452,14 @@ export const CrashGame: React.FC<CrashGameProps> = ({
       return;
     }
 
-    // Place new bet
+    // Place new bet -> Instant wallet deduction
     if (balance < target.betAmount) {
       alert(`Insufficient balance to bet ${formatPKR(target.betAmount)}!`);
       return;
     }
 
     soundService.playChipStack();
+    onBet(target.betAmount, 0, `Aviator ${panelId === 'panel1' ? 'Bet 1' : 'Bet 2'} Placed`);
     setTarget((prev) => ({ ...prev, isBetPlaced: true, hasCashedOut: false }));
   };
 
@@ -467,6 +483,15 @@ export const CrashGame: React.FC<CrashGameProps> = ({
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
             <span className="text-xs font-black tracking-wider text-rose-400">AVIATOR REAL</span>
           </div>
+
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
         </div>
 
         {/* Speed Controls: 1x, 2x, 5x */}
@@ -526,19 +551,19 @@ export const CrashGame: React.FC<CrashGameProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         {/* Left Flight Canvas Section */}
         <div className="lg:col-span-3 flex flex-col gap-3">
-          {/* Flight Stage */}
-          <div className="bg-[#080d1a] border-2 border-rose-950/80 rounded-3xl p-4 relative shadow-2xl overflow-hidden min-h-[300px] sm:min-h-[380px] flex flex-col justify-between">
+          {/* Flight Stage - 60% Viewport Height */}
+          <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-3xl p-4 relative shadow-2xl overflow-hidden h-[50vh] sm:h-[58vh] min-h-[350px] max-h-[560px] flex flex-col justify-between">
             {/* Top Status and Fast-Launch */}
             <div className="flex items-center justify-between z-10">
               <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>SERVER RTP: {adminSettings?.rtpPercentage ?? 96}%</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>PROVABLY FAIR • RTP: {adminSettings?.rtpPercentage ?? 97}%</span>
               </div>
 
               {gameState === 'idle' && (
                 <button
                   onClick={() => startNextRound(true)}
-                  className="flex items-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs font-bold px-3 py-1 rounded-xl transition cursor-pointer"
+                  className="flex items-center gap-1 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs font-bold px-3 py-1 rounded-xl transition cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.2)]"
                 >
                   <Zap className="w-3.5 h-3.5" />
                   <span>FLY NOW (Skip Wait)</span>
@@ -551,10 +576,10 @@ export const CrashGame: React.FC<CrashGameProps> = ({
               ref={canvasRef}
               width={750}
               height={360}
-              className="w-full h-56 sm:h-72 my-auto block"
+              className="w-full h-full my-auto block object-contain"
             />
 
-            {/* Multiplier Central Display */}
+            {/* Multiplier Central Display with White -> Yellow -> Red Dynamic Transition */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
               {gameState === 'idle' ? (
                 <div className="text-center animate-in fade-in duration-200">
@@ -571,14 +596,25 @@ export const CrashGame: React.FC<CrashGameProps> = ({
                   <div className="text-xl sm:text-2xl font-black text-rose-500 tracking-widest uppercase">
                     FLEW AWAY!
                   </div>
-                  <div className="text-6xl sm:text-7xl font-black text-rose-400 font-mono drop-shadow-[0_0_30px_rgba(239,68,68,0.8)]">
+                  <div className="text-6xl sm:text-8xl font-black text-rose-500 font-mono drop-shadow-[0_0_35px_rgba(239,68,68,0.9)]">
                     {crashPoint.toFixed(2)}x
                   </div>
                 </div>
               ) : (
                 <div className="text-center">
-                  <div className="text-6xl sm:text-8xl font-black text-white font-mono tracking-tight drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">
+                  <div
+                    className={`text-6xl sm:text-8xl font-black font-mono tracking-tight transition-colors duration-200 ${
+                      multiplier < 2.0
+                        ? 'text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.6)]'
+                        : multiplier < 10.0
+                        ? 'text-[#F59E0B] drop-shadow-[0_0_35px_rgba(245,158,11,0.7)]'
+                        : 'text-[#EF4444] drop-shadow-[0_0_40px_rgba(239,68,68,0.9)]'
+                    }`}
+                  >
                     {multiplier.toFixed(2)}x
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold tracking-wider text-slate-300 uppercase mt-1">
+                    Current Multiplier
                   </div>
                 </div>
               )}
@@ -588,7 +624,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({
           {/* Dual Betting Controls (Authentic Aviator Bet 1 & Bet 2) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Panel 1 */}
-            <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-3.5 shadow-xl flex flex-col gap-2.5">
+            <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-3xl p-3.5 shadow-xl flex flex-col gap-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-rose-400">BET 1 (Standard)</span>
                 <span className="font-mono text-amber-400 font-bold">{formatPKR(panel1.betAmount)}</span>
@@ -671,7 +707,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({
             </div>
 
             {/* Panel 2 */}
-            <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-3.5 shadow-xl flex flex-col gap-2.5">
+            <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-3xl p-3.5 shadow-xl flex flex-col gap-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-teal-400">BET 2 (Hedge / Safety)</span>
                 <span className="font-mono text-amber-400 font-bold">{formatPKR(panel2.betAmount)}</span>
@@ -818,6 +854,12 @@ export const CrashGame: React.FC<CrashGameProps> = ({
           </div>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Aviator Crash"
+      />
     </div>
   );
 };

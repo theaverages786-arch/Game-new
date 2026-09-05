@@ -28,6 +28,9 @@ interface LobbyTabProps {
   onOpenDownload?: () => void;
   onOpenInvite?: () => void;
   onOpenSpinWheel?: () => void;
+  onOpenRoomModal?: () => void;
+  onOpenFreeCoins?: () => void;
+  onOpenRules?: () => void;
   language: 'en' | 'ur' | 'hi';
 }
 
@@ -57,6 +60,9 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
   onOpenDownload,
   onOpenInvite,
   onOpenSpinWheel,
+  onOpenRoomModal,
+  onOpenFreeCoins,
+  onOpenRules,
   language,
 }) => {
   const [activeBanner, setActiveBanner] = useState(0);
@@ -206,6 +212,62 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
             📢 Welcome to P999! Daily recharge bonus up to Rs 99,999 next day! JazzCash &amp; EasyPaisa auto deposit instant credited in 10 seconds. Certified 999/JAZ gaming platform.
           </div>
         </div>
+      </div>
+
+      {/* 2.5 Quick Multiplayer & Practice Actions */}
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={() => {
+            soundService.playClick();
+            if (onOpenRoomModal) onOpenRoomModal();
+            else onSelectGame('arcade_ludo');
+          }}
+          className="bg-gradient-to-r from-amber-600/90 to-yellow-600/90 hover:from-amber-500 hover:to-yellow-500 border border-amber-400/60 rounded-2xl p-2.5 flex items-center gap-2 shadow-lg transition cursor-pointer group text-left"
+        >
+          <div className="w-9 h-9 rounded-xl bg-black/40 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition">
+            🎮
+          </div>
+          <div className="overflow-hidden">
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-black text-white leading-tight block truncate">Multiplayer Rooms</span>
+              <span className="bg-red-600 text-white text-[8px] font-black px-1 rounded animate-pulse">LIVE</span>
+            </div>
+            <span className="text-[9px] text-amber-100 font-medium block truncate">Ludo • Teen Patti • Rummy</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            soundService.playClick();
+            if (onOpenFreeCoins) onOpenFreeCoins();
+            else onOpenDeposit();
+          }}
+          className="bg-gradient-to-r from-emerald-700/80 to-teal-700/80 hover:from-emerald-600 hover:to-teal-600 border border-emerald-400/50 rounded-2xl p-2.5 flex items-center gap-2 shadow-lg transition cursor-pointer group text-left"
+        >
+          <div className="w-9 h-9 rounded-xl bg-black/40 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition">
+            🪙
+          </div>
+          <div className="overflow-hidden">
+            <span className="text-xs font-black text-white leading-tight block truncate">Free Practice Coins</span>
+            <span className="text-[9px] text-emerald-200 font-medium block truncate">Faucet &amp; Lucky Spin</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            soundService.playClick();
+            if (onOpenRules) onOpenRules();
+          }}
+          className="bg-gradient-to-r from-blue-700/80 to-indigo-700/80 hover:from-blue-600 hover:to-indigo-600 border border-blue-400/50 rounded-2xl p-2.5 flex items-center gap-2 shadow-lg transition cursor-pointer group text-left"
+        >
+          <div className="w-9 h-9 rounded-xl bg-black/40 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition">
+            📜
+          </div>
+          <div className="overflow-hidden">
+            <span className="text-xs font-black text-white leading-tight block truncate">Game Rules</span>
+            <span className="text-[9px] text-blue-200 font-medium block truncate">How to Play &amp; Win</span>
+          </div>
+        </button>
       </div>
 
       {/* 3. Category Filter Tabs */}
@@ -1027,6 +1089,66 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
                 <span className="text-[9px] text-slate-400 block">Las Vegas Retro 777</span>
               </div>
             </div>
+
+            {/* 13. Three Little Pigs */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('fc_three_pigs');
+              }}
+              className="bg-[#2a0e20] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🐷 🐺</div>
+              <div>
+                <span className="text-xs font-black text-pink-300 block">Three Little Pigs</span>
+                <span className="text-[9px] text-slate-400 block">FC House Blow Multipliers</span>
+              </div>
+            </div>
+
+            {/* 14. PP Cleopatra */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('pp_cleopatra');
+              }}
+              className="bg-[#291e05] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">👑 🪲</div>
+              <div>
+                <span className="text-xs font-black text-amber-300 block">PP Cleopatra</span>
+                <span className="text-[9px] text-slate-400 block">Pharaoh Golden Scarab</span>
+              </div>
+            </div>
+
+            {/* 15. PG Fortune Ox & Tiger */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('slots_fortune_pg');
+              }}
+              className="bg-[#241305] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🐂 🐯</div>
+              <div>
+                <span className="text-xs font-black text-yellow-300 block">Fortune Ox &amp; Tiger</span>
+                <span className="text-[9px] text-slate-400 block">PG Soft 10x Respin</span>
+              </div>
+            </div>
+
+            {/* 16. Fortune Garuda */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('jili_fortune_garuda');
+              }}
+              className="bg-[#2e1d08] border border-slate-700/80 rounded-2xl p-3 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-[4/5]"
+            >
+              <div className="text-3xl my-auto">🦅 ⚡</div>
+              <div>
+                <span className="text-xs font-black text-amber-300 block">Fortune Garuda</span>
+                <span className="text-[9px] text-slate-400 block">JILI 500x Gold Wilds</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1208,6 +1330,24 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
               </div>
               <span className="text-3xl">🎲</span>
             </div>
+
+            {/* 10. JILI Cards / 7 Up */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('jili_cards');
+              }}
+              className="bg-gradient-to-r from-[#20183b] to-[#0d0a1c] border border-slate-700/60 rounded-2xl p-3 flex items-center justify-between shadow hover:border-amber-400 transition cursor-pointer"
+            >
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-black text-purple-300">JILI Cards 7UP</span>
+                  <span className="text-[9px] bg-purple-600 text-white px-1.5 py-0.2 rounded font-bold">JILI</span>
+                </div>
+                <span className="text-[9px] text-slate-300 block mt-0.5">Gold Table Cards</span>
+              </div>
+              <span className="text-3xl">🃏</span>
+            </div>
           </div>
         </div>
       )}
@@ -1324,6 +1464,21 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
               <div>
                 <span className="text-[10px] font-bold text-white block truncate">Macau Sic Bo</span>
                 <span className="text-[8px] text-red-300 block font-bold">180x Triples</span>
+              </div>
+            </div>
+
+            {/* 8. Hi-Lo Dice & Cards */}
+            <div
+              onClick={() => {
+                soundService.playClick();
+                onSelectGame('hi_lo');
+              }}
+              className="bg-[#1b1706] border border-slate-700/80 rounded-2xl p-2.5 text-center hover:border-amber-400 transition cursor-pointer flex flex-col justify-between aspect-square"
+            >
+              <div className="text-3xl my-auto">📈 📉</div>
+              <div>
+                <span className="text-[10px] font-bold text-yellow-300 block truncate">Hi-Lo Predictor</span>
+                <span className="text-[8px] text-amber-300 block font-bold">High / Low 12x</span>
               </div>
             </div>
           </div>

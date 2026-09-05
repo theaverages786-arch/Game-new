@@ -9,12 +9,19 @@ import {
   VolumeX,
   FastForward,
   RotateCcw,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
 import { shouldPlayerWin, playOutcomeCelebration, formatPKR } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  generateShuffledDeck 
+} from '../../services/provablyFair';
 
 interface DragonTigerGameProps {
   balance: number;
@@ -84,6 +91,8 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
   const [tigerCard, setTigerCard] = useState<CardDef | null>(null);
   const [winner, setWinner] = useState<'dragon' | 'tiger' | 'tie' | null>(null);
   const [soundMuted, setSoundMuted] = useState(!soundService.isEnabled());
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   // Past rounds history (Bead plate)
   const [roadMap, setRoadMap] = useState<('D' | 'T' | 'X')[]>([
@@ -152,13 +161,21 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
       return;
     }
 
+    // Instant automated wallet deduction before game start
+    onBet(totalBet, 0, 'Dragon Tiger Bet Placed');
+
     setIsDealing(true);
     setDragonCard(null);
     setTigerCard(null);
     setWinner(null);
     soundService.playCardDeal();
 
-    // 1. Determine Cards based on Admin Settings & Game Engine
+    // Advance Provably Fair state
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
+    // 1. Determine Cards based on Provably Fair RNG & Admin Settings
     let dCard: CardDef;
     let tCard: CardDef;
 
@@ -175,34 +192,16 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
         tCard = CARDS.find((c) => c.rank === '8' && c.suit !== dCard.suit) || CARDS[7];
       }
     } else {
-      // Game Engine evaluation
-      const userShouldWin = shouldPlayerWin('dragon_tiger', adminSettings, 0.48);
-      const userPrimarySide = bets.dragon > bets.tiger ? 'dragon' : bets.tiger > bets.dragon ? 'tiger' : bets.tie > 0 ? 'tie' : 'dragon';
-
-      if (userShouldWin) {
-        if (userPrimarySide === 'dragon') {
-          dCard = CARDS.find((c) => c.rank === 'K' || c.rank === 'Q') || CARDS[11];
-          tCard = CARDS.find((c) => c.rank === '4' || c.rank === '2') || CARDS[1];
-        } else if (userPrimarySide === 'tiger') {
-          tCard = CARDS.find((c) => c.rank === 'K' || c.rank === 'Q') || CARDS[11];
-          dCard = CARDS.find((c) => c.rank === '4' || c.rank === '2') || CARDS[1];
-        } else {
-          dCard = CARDS[8];
-          tCard = CARDS.find((c) => c.value === dCard.value && c !== dCard) || CARDS[8];
-        }
-      } else {
-        // Player should lose
-        if (userPrimarySide === 'dragon') {
-          tCard = CARDS.find((c) => c.rank === 'K') || CARDS[12];
-          dCard = CARDS.find((c) => c.rank === '3') || CARDS[2];
-        } else if (userPrimarySide === 'tiger') {
-          dCard = CARDS.find((c) => c.rank === 'K') || CARDS[12];
-          tCard = CARDS.find((c) => c.rank === '3') || CARDS[2];
-        } else {
-          dCard = CARDS[10];
-          tCard = CARDS[2];
-        }
-      }
+      // Deterministic Provably Fair 52-Card Deck Shuffle
+      const pfDeck = generateShuffledDeck(updatedPf.serverSeed, updatedPf.clientSeed, updatedPf.nonce);
+      const toCardDef = (c: typeof pfDeck[0]): CardDef => ({
+        suit: c.suit,
+        rank: c.name,
+        value: c.value === 14 ? 1 : c.value, // Ace is 1, King is 13
+        isRed: c.color === 'red',
+      });
+      dCard = toCardDef(pfDeck[0]);
+      tCard = toCardDef(pfDeck[1]);
     }
 
     const delay1 = turboMode ? 100 : 400;
@@ -248,7 +247,8 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
         soundService.playLose();
       }
 
-      onBet(totalBet, winAmt, `Dragon Tiger [${dCard.rank}${dCard.suit} vs ${tCard.rank}${tCard.suit}] Winner: ${roundWinner.toUpperCase()}`);
+      // Automated Bet Settlement upon completion
+      onBet(0, winAmt, `Dragon Tiger [${dCard.rank}${dCard.suit} vs ${tCard.rank}${tCard.suit}] Winner: ${roundWinner.toUpperCase()}`);
     }, delay2);
   };
 
@@ -278,6 +278,15 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
             <Swords className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-black tracking-wider text-amber-300">DRAGON TIGER VIP</span>
           </div>
+
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
         </div>
 
         {/* Speed and Sound */}
@@ -532,6 +541,12 @@ export const DragonTigerGame: React.FC<DragonTigerGameProps> = ({
           </div>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Dragon Tiger"
+      />
     </div>
   );
 };

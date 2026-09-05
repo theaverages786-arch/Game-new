@@ -4,6 +4,12 @@ import { ArrowLeft, Play, Pause, Flame, Sparkles, Volume2, VolumeX, ShieldCheck,
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
 import { shouldPlayerWin, playOutcomeCelebration, formatPKR } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  generatePlinkoPath 
+} from '../../services/provablyFair';
 
 interface PlinkoProps {
   onBack: () => void;
@@ -63,6 +69,8 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
   const [autoDrop, setAutoDrop] = useState<boolean>(false);
   const [history, setHistory] = useState<number[]>([2, 0.2, 8.1, 0.7, 24, 0.2, 1.5]);
   const [activeBucket, setActiveBucket] = useState<number | null>(null);
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -161,12 +169,12 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Draw Pegs
+      // Draw Pegs (Glowing White Dots)
       pegBodies.forEach((peg) => {
         ctx.beginPath();
         ctx.arc(peg.position.x, peg.position.y, pegRadius, 0, Math.PI * 2);
-        ctx.fillStyle = '#f59e0b';
-        ctx.shadowColor = '#fbbf24';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
         ctx.shadowBlur = 6;
         ctx.fill();
         ctx.shadowBlur = 0;
@@ -263,6 +271,11 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
     onUpdateBalance(nextBal);
     soundService.playChip();
 
+    // Advance Provably Fair state
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     if (!engineRef.current) return;
 
     const width = 640;
@@ -330,9 +343,20 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-right">
-          <span className="text-[10px] text-slate-400 block">Balance</span>
-          <span className="text-sm font-black text-amber-300">₨ {userBalance.toLocaleString()}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
+          <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-right">
+            <span className="text-[10px] text-slate-400 block">Balance</span>
+            <span className="text-sm font-black text-amber-300">₨ {userBalance.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
@@ -360,33 +384,33 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
       </div>
 
       {/* Main Board Container */}
-      <div className="relative rounded-3xl border-2 border-amber-500/40 bg-[#070b16] overflow-hidden shadow-2xl p-2 sm:p-4 flex flex-col items-center">
+      <div className="relative rounded-3xl backdrop-blur-md bg-white/5 border border-white/10 overflow-hidden shadow-2xl p-2 sm:p-4 flex flex-col items-center">
         {/* Canvas for Physics */}
         <canvas
           ref={canvasRef}
           className="w-full max-w-[580px] h-[360px] sm:h-[460px] rounded-2xl block"
         />
 
-        {/* Multiplier Bucket Shelf */}
+        {/* Multiplier Bucket Shelf (Green in Center -> Yellow -> Orange -> Red on Edges) */}
         <div className="w-full max-w-[580px] -mt-6 z-10 grid gap-0.5 sm:gap-1" style={{ gridTemplateColumns: `repeat(${multipliers.length}, minmax(0, 1fr))` }}>
           {multipliers.map((m, idx) => {
             const isHit = activeBucket === idx;
-            const isExtreme = idx === 0 || idx === multipliers.length - 1;
-            const isMid = idx === 1 || idx === multipliers.length - 2;
+            const centerIdx = (multipliers.length - 1) / 2;
+            const dist = Math.abs(idx - centerIdx) / centerIdx; // 0 at center, 1 at edge
 
             return (
               <div
                 key={idx}
                 className={`py-1.5 sm:py-2 text-center rounded-xl font-black text-[9px] sm:text-xs transition-all duration-150 ${
                   isHit
-                    ? 'bg-white text-slate-950 scale-125 z-20 shadow-[0_0_15px_rgba(255,255,255,0.9)]'
-                    : isExtreme
-                    ? 'bg-gradient-to-b from-rose-500 to-red-700 text-white shadow-red-900/50'
-                    : isMid
-                    ? 'bg-gradient-to-b from-amber-500 to-orange-600 text-white shadow-amber-900/50'
-                    : m >= 2
-                    ? 'bg-gradient-to-b from-yellow-500 to-amber-600 text-slate-950'
-                    : 'bg-gradient-to-b from-slate-800 to-slate-900 text-slate-300'
+                    ? 'bg-white text-slate-950 scale-125 z-20 shadow-[0_0_20px_rgba(16,185,129,0.9)] ring-2 ring-emerald-400'
+                    : dist < 0.25
+                    ? 'bg-gradient-to-b from-emerald-500 to-green-600 text-slate-950 font-black shadow-emerald-950/50'
+                    : dist < 0.55
+                    ? 'bg-gradient-to-b from-amber-400 to-yellow-500 text-slate-950 font-black shadow-amber-950/50'
+                    : dist < 0.85
+                    ? 'bg-gradient-to-b from-orange-500 to-red-500 text-white font-black shadow-orange-950/50'
+                    : 'bg-gradient-to-b from-rose-600 to-red-700 text-white font-black shadow-[0_0_12px_rgba(239,68,68,0.7)]'
                 }`}
               >
                 {m >= 100 ? `${m}` : `${m}x`}
@@ -397,7 +421,7 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
       </div>
 
       {/* Control Panel */}
-      <div className="bg-[#0e1424] border border-amber-500/30 rounded-3xl p-3 sm:p-4 shadow-xl space-y-3">
+      <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-3xl p-3 sm:p-4 shadow-xl space-y-3">
         {/* Risk & Rows Selectors */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {/* Risk Level */}
@@ -518,6 +542,12 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
           </button>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Plinko"
+      />
     </div>
   );
 };

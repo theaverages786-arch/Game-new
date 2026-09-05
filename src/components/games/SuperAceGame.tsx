@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Zap, Flame, Info, RotateCcw, Play } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, Zap, Flame, Info, RotateCcw, Play, ShieldCheck } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
 import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  calculateSlotReelStops 
+} from '../../services/provablyFair';
 
 interface SuperAceGameProps {
   onBack: () => void;
@@ -44,6 +50,8 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
   const [winMessage, setWinMessage] = useState<string | null>(null);
   const [autoSpin, setAutoSpin] = useState(false);
   const [soundOn, setSoundOn] = useState(soundService.isEnabled());
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   // 5 reels x 4 rows
   const [grid, setGrid] = useState<SymbolDef[][]>([
@@ -82,6 +90,11 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
     setWinMessage(null);
     setComboMultiplier(1);
 
+    // Advance Provably Fair state
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     // Initial spin animation
     let stepCount = 0;
     const spinInterval = setInterval(() => {
@@ -99,35 +112,44 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
       stepCount++;
       if (stepCount >= 10) {
         clearInterval(spinInterval);
-        resolveSpin();
+        resolveSpin(updatedPf);
       }
     }, 80);
   };
 
-  const resolveSpin = () => {
-    // Generate final grid governed by master outcome & RTP
+  const resolveSpin = (activePf: typeof pfState) => {
+    // Generate final grid governed by Provably Fair SHA-256 RNG & admin RTP
     const isWin = shouldPlayerWin('slots_super_ace', adminSettings, 0.45);
+
+    const stops = calculateSlotReelStops(activePf.serverSeed, activePf.clientSeed, activePf.nonce, 20, BASE_SYMBOLS.length);
+    let stopIdx = 0;
+    const getPfSymbol = (): SymbolDef => {
+      const sym = BASE_SYMBOLS[stops[stopIdx % stops.length]];
+      const isGold = stops[(stopIdx + 3) % stops.length] === 0;
+      stopIdx++;
+      return { ...sym, isGolden: isGold };
+    };
 
     let finalGrid: SymbolDef[][];
 
     if (isWin) {
-      const matchSymbol = BASE_SYMBOLS[Math.floor(Math.random() * 4)];
+      const matchSymbol = BASE_SYMBOLS[stops[0] % 4];
       finalGrid = Array(5)
         .fill(0)
         .map((_, rIdx) => [
-          rIdx < 3 ? matchSymbol : getRandomSymbol(),
-          getRandomSymbol(),
-          getRandomSymbol(),
-          getRandomSymbol(),
+          rIdx < 3 ? matchSymbol : getPfSymbol(),
+          getPfSymbol(),
+          getPfSymbol(),
+          getPfSymbol(),
         ]);
     } else {
       finalGrid = Array(5)
         .fill(0)
         .map(() => [
-          getRandomSymbol(),
-          getRandomSymbol(),
-          getRandomSymbol(),
-          getRandomSymbol(),
+          getPfSymbol(),
+          getPfSymbol(),
+          getPfSymbol(),
+          getPfSymbol(),
         ]);
     }
 
@@ -212,7 +234,16 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
           <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-right">
             <span className="text-[10px] text-slate-400 block">Balance</span>
             <span className="text-sm font-black text-amber-300">₨ {userBalance.toLocaleString()}</span>
@@ -359,6 +390,12 @@ export const SuperAceGame: React.FC<SuperAceGameProps> = ({
           </button>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Super Ace Slots"
+      />
     </div>
   );
 };

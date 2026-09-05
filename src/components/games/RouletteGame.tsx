@@ -1,8 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, CircleDot, Play } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Sparkles, Trophy, CircleDot, Play, ShieldCheck } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
 import { playOutcomeCelebration } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  calculateRouletteNumber 
+} from '../../services/provablyFair';
 
 interface RouletteProps {
   onBack: () => void;
@@ -29,6 +35,8 @@ export const RouletteGame: React.FC<RouletteProps> = ({
   const [lastWin, setLastWin] = useState(0);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [wheelRotation, setWheelRotation] = useState(0);
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   const totalBet = Object.keys(placedBets).reduce(
     (acc, key) => acc + (placedBets[key] || 0),
@@ -84,6 +92,11 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     setSpinning(true);
     setResultMsg(null);
 
+    // Advance Provably Fair state
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     // Spin animation with sound ticks
     const extraRotations = isTurbo ? 2 : 5 + Math.floor(Math.random() * 5);
     const randomAngle = Math.floor(Math.random() * 360);
@@ -100,13 +113,13 @@ export const RouletteGame: React.FC<RouletteProps> = ({
     }, isTurbo ? 50 : 120);
 
     setTimeout(() => {
-      resolveWheelOutcome();
+      resolveWheelOutcome(updatedPf);
     }, isTurbo ? 350 : 1800);
   };
 
-  const resolveWheelOutcome = () => {
-    // Generate winning number 0-36
-    let winNum = Math.floor(Math.random() * 37);
+  const resolveWheelOutcome = (activePf: typeof pfState) => {
+    // Generate winning number 0-36 via Provably Fair SHA-256 Engine
+    let winNum = calculateRouletteNumber(activePf.serverSeed, activePf.clientSeed, activePf.nonce);
 
     // Admin Outcome Matrix & Forcer Checks
     const forced = adminSettings?.forcedResults?.roulette;
@@ -207,9 +220,20 @@ export const RouletteGame: React.FC<RouletteProps> = ({
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-right">
-          <span className="text-[10px] text-slate-400 block">Balance</span>
-          <span className="text-sm font-black text-amber-300">₨ {userBalance.toLocaleString()}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
+          <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-right">
+            <span className="text-[10px] text-slate-400 block">Balance</span>
+            <span className="text-sm font-black text-amber-300">₨ {userBalance.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
@@ -371,6 +395,12 @@ export const RouletteGame: React.FC<RouletteProps> = ({
           </button>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Roulette"
+      />
     </div>
   );
 };

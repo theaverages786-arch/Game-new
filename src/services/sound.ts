@@ -470,6 +470,14 @@ class SoundFX {
     osc.start(now);
     osc.stop(now + 0.08);
   }
+
+  public playSuccess() {
+    this.playCoin();
+  }
+
+  public playError() {
+    this.playLose();
+  }
 }
 
 export const soundService = new SoundFX();

@@ -240,7 +240,7 @@ export const RummyGame: React.FC<RummyGameProps> = ({
           <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
             <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
             <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
-              Rs {userBalance.toLocaleString()}
+              🪙 {userBalance.toLocaleString()} Coins
             </span>
           </div>
         </div>
@@ -398,7 +398,7 @@ export const RummyGame: React.FC<RummyGameProps> = ({
           <>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-300">Point Value:</span>
-              {[0.5, 1, 2, 5, 10, 25].map((pv) => (
+              {[5, 10, 25, 50, 100, 250].map((pv) => (
                 <button
                   key={pv}
                   onClick={() => {
@@ -411,15 +411,15 @@ export const RummyGame: React.FC<RummyGameProps> = ({
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
                   }`}
                 >
-                  Rs {pv}
+                  {pv} Coins
                 </button>
               ))}
             </div>
 
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-bold">MAX RISK (80 pts)</span>
-                <span className="text-xs font-black text-amber-400">Rs {(pointValue * 80).toLocaleString()}</span>
+                <span className="text-[10px] text-slate-400 block font-bold">MAX POT (80 pts)</span>
+                <span className="text-xs font-black text-amber-400">🪙 {(pointValue * 80).toLocaleString()} Coins</span>
               </div>
               <button
                 onClick={handleStartGame}

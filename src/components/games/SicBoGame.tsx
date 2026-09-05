@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { ArrowLeft, Dices, Trophy, RefreshCw, Volume2, VolumeX, ShieldCheck, Sparkles } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  calculateDiceRoll 
+} from '../../services/provablyFair';
 
 interface SicBoProps {
   onBack: () => void;
@@ -33,6 +39,8 @@ export const SicBoGame: React.FC<SicBoProps> = ({
   const [dice, setDice] = useState<[number, number, number]>([4, 5, 6]);
   const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<number[]>([15, 8, 11, 14, 6, 9, 13, 10]);
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   const chips = [20, 50, 100, 500, 1000, 5000];
   const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
@@ -69,6 +77,11 @@ export const SicBoGame: React.FC<SicBoProps> = ({
     setWinnerMessage(null);
     soundService.playDiceRoll();
 
+    // Advance Provably Fair state by 3 (one nonce per die)
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 3 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     const interval = setInterval(() => {
       setDice([
         Math.floor(Math.random() * 6) + 1,
@@ -84,9 +97,11 @@ export const SicBoGame: React.FC<SicBoProps> = ({
       const globalWin = adminSettings?.globalWinRate ?? 65;
       const willWin = masterMode === 'always_win' || (masterMode !== 'always_lose' && (Math.random() * 100 < globalWin));
 
-      let d1 = Math.floor(Math.random() * 6) + 1;
-      let d2 = Math.floor(Math.random() * 6) + 1;
-      let d3 = Math.floor(Math.random() * 6) + 1;
+      // Deterministic Provably Fair Dice Generation
+      const diceRolls = calculateDiceRoll(updatedPf.serverSeed, updatedPf.clientSeed, updatedPf.nonce, 3);
+      let d1 = diceRolls[0];
+      let d2 = diceRolls[1];
+      let d3 = diceRolls[2];
       let sum = d1 + d2 + d3;
 
       if (forced === 'triple') {
@@ -172,11 +187,22 @@ export const SicBoGame: React.FC<SicBoProps> = ({
           <span className="text-[10px] text-rose-300 font-medium">Small (4-10) • Big (11-17) • Triples Up to 180x</span>
         </div>
 
-        <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
-          <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
-          <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
-            Rs {userBalance.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
+          <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
+            <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
+            <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
+              Rs {userBalance.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -333,6 +359,12 @@ export const SicBoGame: React.FC<SicBoProps> = ({
           </button>
         </div>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Sic Bo"
+      />
     </div>
   );
 };

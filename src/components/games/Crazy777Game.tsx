@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Sparkles, RefreshCw, Trophy, Zap } from 'lucide-react';
+import { ArrowLeft, Sparkles, RefreshCw, Trophy, Zap, ShieldCheck } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { triggerWinConfetti } from '../../services/storage';
 import { AdminSettings } from '../../types';
 import { shouldPlayerWin, playOutcomeCelebration } from '../../services/gameEngine';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  calculateSlotReelStops 
+} from '../../services/provablyFair';
 
 interface Crazy777GameProps {
   userBalance: number;
@@ -27,6 +33,8 @@ export const Crazy777Game: React.FC<Crazy777GameProps> = ({
   const [betAmount, setBetAmount] = useState<number>(100);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [lastWin, setLastWin] = useState<number>(0);
+  const [showPfModal, setShowPfModal] = useState<boolean>(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
 
   const chips = [50, 100, 200, 500, 1000, 2000, 5000];
 
@@ -41,27 +49,35 @@ export const Crazy777Game: React.FC<Crazy777GameProps> = ({
     setIsSpinning(true);
     setLastWin(0);
 
+    // Advance Provably Fair state
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
     setTimeout(() => {
       let winMult = 0;
       const shouldWin = shouldPlayerWin('wg_crazy777', adminSettings, 0.44);
 
-      const sp = SPECIAL_REEL_ITEMS[Math.floor(Math.random() * SPECIAL_REEL_ITEMS.length)];
+      // Deterministic Provably Fair Reel Stops for 3 main reels + 1 bonus reel
+      const stops = calculateSlotReelStops(updatedPf.serverSeed, updatedPf.clientSeed, updatedPf.nonce, 4, 8);
+      const symbols = ['7️⃣', '💎', '👑', '🍒', '🔔', '🪙'];
+
+      const sp = SPECIAL_REEL_ITEMS[stops[3] % SPECIAL_REEL_ITEMS.length];
       setSpecialReel(sp);
 
       if (shouldWin) {
         // High win 777 match
-        const symbolType = Math.random() < 0.3 ? '7️⃣' : Math.random() < 0.6 ? '👑' : '💎';
+        const symbolType = stops[0] % 3 === 0 ? '7️⃣' : stops[0] % 3 === 1 ? '👑' : '💎';
         setReels([symbolType, symbolType, symbolType]);
 
         let baseMult = symbolType === '7️⃣' ? 20 : symbolType === '👑' ? 10 : 5;
         let specialBonus = sp === 'x10' ? 10 : sp === 'x5' ? 5 : sp === 'x2' ? 2 : 1;
         winMult = baseMult * specialBonus;
       } else {
-        const symbols = ['7️⃣', '💎', '👑', '🍒', '🔔', '🪙'];
         setReels([
-          symbols[Math.floor(Math.random() * symbols.length)],
-          symbols[Math.floor(Math.random() * symbols.length)],
-          symbols[Math.floor(Math.random() * symbols.length)],
+          symbols[stops[0] % symbols.length],
+          symbols[stops[1] % symbols.length],
+          symbols[stops[2] % symbols.length],
         ]);
       }
 
@@ -102,11 +118,22 @@ export const Crazy777Game: React.FC<Crazy777GameProps> = ({
           </div>
         </div>
 
-        <div className="text-right">
-          <span className="text-[10px] text-slate-400 block">Balance</span>
-          <span className="text-sm sm:text-base font-black text-amber-300 font-mono">
-            ₨ {userBalance.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
+          <div className="text-right">
+            <span className="text-[10px] text-slate-400 block">Balance</span>
+            <span className="text-sm sm:text-base font-black text-amber-300 font-mono">
+              ₨ {userBalance.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -185,6 +212,12 @@ export const Crazy777Game: React.FC<Crazy777GameProps> = ({
           <span>SPIN 777 (₨ {betAmount})</span>
         </button>
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="WG Crazy 777"
+      />
     </div>
   );
 };

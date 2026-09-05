@@ -1,6 +1,6 @@
 {
   "name": "P999 Premier Gaming Hub & Casino Portal",
-  "description": "Exact reproduction of P999 gaming portal with Hot, Slots, Cards, Fishing, Live Casino, Sports, Mini Games, Promotion events, Multi-tier Invite Agent system, 24/7 Message & Support Center, and VIP Profile.",
+  "description": "Educational play-money multiplayer gaming website built with Node.js, Socket.io, and React featuring Ludo, Teen Patti Demo, and Rummy Demo with virtual coin tables and real-time room synchronization.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

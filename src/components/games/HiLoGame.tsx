@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ArrowLeft, RefreshCw, Trophy, Volume2, VolumeX, ShieldCheck, ArrowUp, ArrowDown, DollarSign } from 'lucide-react';
 import { soundService } from '../../services/sound';
 import { AdminSettings } from '../../types';
+import { ProvablyFairModal } from '../modals/ProvablyFairModal';
+import { 
+  loadProvablyFairState, 
+  saveProvablyFairState, 
+  generateShuffledDeck 
+} from '../../services/provablyFair';
 
 interface HiLoProps {
   onBack: () => void;
@@ -37,22 +43,12 @@ export const HiLoGame: React.FC<HiLoProps> = ({
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
   const [gameMessage, setGameMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<Card[]>([]);
+  const [showPfModal, setShowPfModal] = useState(false);
+  const [pfState, setPfState] = useState(loadProvablyFairState);
+  const [deckCards, setDeckCards] = useState<Card[]>([]);
+  const deckIndexRef = useRef<number>(0);
 
   const bets = [10, 20, 50, 100, 250, 500, 1000];
-  const SUITS: ('♠' | '♥' | '♦' | '♣')[] = ['♠', '♥', '♦', '♣'];
-  const VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-  const LABELS: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
-
-  const getRandomCard = (): Card => {
-    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
-    const value = VALUES[Math.floor(Math.random() * VALUES.length)];
-    return {
-      suit,
-      value,
-      label: LABELS[value] || value.toString(),
-      color: suit === '♥' || suit === '♦' ? 'red' : 'black',
-    };
-  };
 
   const handleStartGame = () => {
     if (userBalance < bet) {
@@ -63,7 +59,23 @@ export const HiLoGame: React.FC<HiLoProps> = ({
     soundService.playChip();
     onUpdateBalance(userBalance - bet);
 
-    const firstCard = getRandomCard();
+    // Provably Fair Fisher-Yates Deck Generation
+    const updatedPf = { ...pfState, nonce: pfState.nonce + 1 };
+    setPfState(updatedPf);
+    saveProvablyFairState(updatedPf);
+
+    const pfDeck = generateShuffledDeck(updatedPf.serverSeed, updatedPf.clientSeed, updatedPf.nonce);
+    const convertedCards: Card[] = pfDeck.map((c) => ({
+      suit: c.suit,
+      value: c.value,
+      label: c.name,
+      color: c.color,
+    }));
+
+    setDeckCards(convertedCards);
+    deckIndexRef.current = 1;
+
+    const firstCard = convertedCards[0];
     setCurrentCard(firstCard);
     setHistory([firstCard]);
     setStreak(0);
@@ -77,7 +89,9 @@ export const HiLoGame: React.FC<HiLoProps> = ({
     if (!isPlaying) return;
 
     soundService.playCardDeal();
-    const nextCard = getRandomCard();
+    const nextCard = deckCards[deckIndexRef.current] || deckCards[0];
+    deckIndexRef.current = (deckIndexRef.current + 1) % deckCards.length;
+
     const isCorrect =
       (guess === 'higher' && nextCard.value >= currentCard.value) ||
       (guess === 'lower' && nextCard.value <= currentCard.value);
@@ -134,11 +148,22 @@ export const HiLoGame: React.FC<HiLoProps> = ({
           <span className="text-[10px] text-cyan-300 font-medium">Guess Higher / Lower • Compounding Multipliers</span>
         </div>
 
-        <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
-          <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
-          <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
-            Rs {userBalance.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPfModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900 text-xs font-bold transition cursor-pointer"
+            title="Provably Fair Cryptographic Verification"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline font-mono text-[11px]">Fair SHA-256</span>
+          </button>
+
+          <div className="bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30 text-right">
+            <span className="text-[9px] text-slate-400 block font-bold">BALANCE</span>
+            <span className="text-xs sm:text-sm font-black text-amber-400 font-mono">
+              Rs {userBalance.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -252,6 +277,12 @@ export const HiLoGame: React.FC<HiLoProps> = ({
           </div>
         )}
       </div>
+
+      <ProvablyFairModal
+        isOpen={showPfModal}
+        onClose={() => setShowPfModal(false)}
+        currentGame="Hi-Lo Cards"
+      />
     </div>
   );
 };

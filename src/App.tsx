@@ -1,886 +1,696 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Navbar, MainTab } from './components/Navbar';
-import { Marquee } from './components/Marquee';
 import { DrawerMenu } from './components/DrawerMenu';
 
-// Landing & Auth
-import { LandingPage } from './components/landing/LandingPage';
-import { AuthModal } from './components/auth/AuthModal';
-
-// Tabs
+// Main Tabs
 import { LobbyTab } from './components/tabs/LobbyTab';
 import { ActivityTab } from './components/tabs/ActivityTab';
 import { AgentTab } from './components/tabs/AgentTab';
-import { ProfileTab } from './components/tabs/ProfileTab';
 import { SupportTab } from './components/tabs/SupportTab';
+import { ProfileTab } from './components/tabs/ProfileTab';
+import { WalletTab } from './components/tabs/WalletTab';
 
-// Games
-import { SlotsGame } from './components/games/SlotsGame';
+// Modals
+import { DepositModal } from './components/modals/DepositModal';
+import { WithdrawModal } from './components/modals/WithdrawModal';
+import { AdminModal } from './components/admin/AdminModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { LiveChatModal } from './components/modals/LiveChatModal';
+import { AppDownloadModal } from './components/modals/AppDownloadModal';
+import { RoomLobbyModal } from './components/lobby/RoomLobbyModal';
+import { FreeCoinsModal } from './components/modals/FreeCoinsModal';
+import { RulesModal } from './components/modals/RulesModal';
+
+// Storage & Services
+import {
+  loadUserData,
+  saveUserData,
+  loadTransactions,
+  saveTransactions,
+  loadBets,
+  saveBets,
+  loadTeam,
+  loadAdminSettings,
+  saveAdminSettings,
+  triggerWinConfetti,
+} from './services/storage';
+import { soundService } from './services/sound';
+import { UserAccount, BetRecord, TransactionRecord, ReferralTeamMember, AdminSettings } from './types';
+
+// All 45 Game Components
+import { LudoGame } from './components/games/LudoGame';
+import { TeenPattiGame } from './components/games/TeenPattiGame';
+import { TeenPatti2020Game } from './components/games/TeenPatti2020Game';
+import { RummyGame } from './components/games/RummyGame';
 import { CrashGame } from './components/games/CrashGame';
-import { ColorPredictionGame } from './components/games/ColorPredictionGame';
-import { MinesGame } from './components/games/MinesGame';
-import { LuckyWheelGame } from './components/games/LuckyWheelGame';
-import { DragonTigerGame } from './components/games/DragonTigerGame';
+import { SlotsGame } from './components/games/SlotsGame';
 import { SuperAceGame } from './components/games/SuperAceGame';
 import { FortuneGemsGame } from './components/games/FortuneGemsGame';
 import { MoneyComingGame } from './components/games/MoneyComingGame';
-import { TeenPattiGame } from './components/games/TeenPattiGame';
-import { AndarBaharGame } from './components/games/AndarBaharGame';
-import { RouletteGame } from './components/games/RouletteGame';
-import { FishingGame } from './components/games/FishingGame';
-import { PlinkoGame } from './components/games/PlinkoGame';
-import { ChickenRoadGame } from './components/games/ChickenRoadGame';
-import { PiggyBankGame } from './components/games/PiggyBankGame';
-import { SportsbookGame } from './components/games/SportsbookGame';
-import { FortunePGSlotGame } from './components/games/FortunePGSlotGame';
 import { Crazy777Game } from './components/games/Crazy777Game';
-import { FortuneGarudaGame } from './components/games/FortuneGarudaGame';
-import { FCThreePigsGame } from './components/games/FCThreePigsGame';
-import { PPCleopatraGame } from './components/games/PPCleopatraGame';
-import { LiveCasinoGame } from './components/games/LiveCasinoGame';
-import { JILICardsGame } from './components/games/JILICardsGame';
-import { CaiShenFishingGame } from './components/games/CaiShenFishingGame';
-
-// Extended Game Suite
-import { TeenPatti2020Game } from './components/games/TeenPatti2020Game';
-import { RummyGame } from './components/games/RummyGame';
-import { TexasHoldemGame } from './components/games/TexasHoldemGame';
-import { BlackjackGame } from './components/games/BlackjackGame';
-import { BaccaratGame } from './components/games/BaccaratGame';
-import { LudoGame } from './components/games/LudoGame';
 import { RomaSlotGame } from './components/games/RomaSlotGame';
 import { FruitPartySlotGame } from './components/games/FruitPartySlotGame';
 import { AztecGemsSlotGame } from './components/games/AztecGemsSlotGame';
 import { MegaWinSlotGame } from './components/games/MegaWinSlotGame';
 import { GoldenEmpireSlotGame } from './components/games/GoldenEmpireSlotGame';
 import { FortuneTreeSlotGame } from './components/games/FortuneTreeSlotGame';
+import { FortuneGarudaGame } from './components/games/FortuneGarudaGame';
+import { FortunePGSlotGame } from './components/games/FortunePGSlotGame';
 import { BoxingKingSlotGame } from './components/games/BoxingKingSlotGame';
+import { FCThreePigsGame } from './components/games/FCThreePigsGame';
+import { PPCleopatraGame } from './components/games/PPCleopatraGame';
+import { AndarBaharGame } from './components/games/AndarBaharGame';
+import { DragonTigerGame } from './components/games/DragonTigerGame';
+import { TexasHoldemGame } from './components/games/TexasHoldemGame';
+import { BlackjackGame } from './components/games/BlackjackGame';
+import { BaccaratGame } from './components/games/BaccaratGame';
+import { SevenUpDownGame } from './components/games/SevenUpDownGame';
+import { RouletteGame } from './components/games/RouletteGame';
 import { ZooRouletteGame } from './components/games/ZooRouletteGame';
 import { CarRouletteGame } from './components/games/CarRouletteGame';
-import { SevenUpDownGame } from './components/games/SevenUpDownGame';
-import { DiceMasterGame } from './components/games/DiceMasterGame';
-import { RedVsBlackGame } from './components/games/RedVsBlackGame';
 import { SicBoGame } from './components/games/SicBoGame';
+import { DiceMasterGame } from './components/games/DiceMasterGame';
 import { HiLoGame } from './components/games/HiLoGame';
-
-// Modals
-import { AdminModal } from './components/admin/AdminModal';
-import { DepositModal } from './components/modals/DepositModal';
-import { WithdrawModal } from './components/modals/WithdrawModal';
-import { AppDownloadModal } from './components/modals/AppDownloadModal';
-import { LiveChatModal } from './components/modals/LiveChatModal';
-
-// Storage & Types
-import { 
-  loadUserData, 
-  saveUserData, 
-  loadTransactions, 
-  saveTransactions, 
-  loadBets, 
-  saveBets, 
-  loadAdminSettings, 
-  saveAdminSettings, 
-  loadTeam 
-} from './services/storage';
-import { UserAccount, TransactionRecord, BetRecord, AdminSettings, ReferralTeamMember } from './types';
+import { RedVsBlackGame } from './components/games/RedVsBlackGame';
+import { JILICardsGame } from './components/games/JILICardsGame';
+import { MinesGame } from './components/games/MinesGame';
+import { ChickenRoadGame } from './components/games/ChickenRoadGame';
+import { PlinkoGame } from './components/games/PlinkoGame';
+import { ColorPredictionGame } from './components/games/ColorPredictionGame';
+import { SportsbookGame } from './components/games/SportsbookGame';
+import { LiveCasinoGame } from './components/games/LiveCasinoGame';
+import { CaiShenFishingGame } from './components/games/CaiShenFishingGame';
+import { FishingGame } from './components/games/FishingGame';
+import { PiggyBankGame } from './components/games/PiggyBankGame';
+import { LuckyWheelGame } from './components/games/LuckyWheelGame';
+import { ArcadePage } from './components/arcade/ArcadePage';
 
 export default function App() {
+  // Global State
   const [user, setUser] = useState<UserAccount>(loadUserData);
-  const [transactions, setTransactions] = useState<TransactionRecord[]>(loadTransactions);
   const [bets, setBets] = useState<BetRecord[]>(loadBets);
+  const [transactions, setTransactions] = useState<TransactionRecord[]>(loadTransactions);
+  const [team] = useState<ReferralTeamMember[]>(loadTeam);
   const [adminSettings, setAdminSettings] = useState<AdminSettings>(loadAdminSettings);
-  const [team, setTeam] = useState<ReferralTeamMember[]>(loadTeam);
 
-  const [activeTab, setActiveTab] = useState<MainTab>('lobby');
+  const [activeTab, setActiveTab] = useState<MainTab | 'wallet'>('lobby');
   const [activeGame, setActiveGame] = useState<string | null>(null);
-  const [isLandingView, setIsLandingView] = useState<boolean>(false);
-  
-  // Modals state
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isDepositOpen, setIsDepositOpen] = useState(false);
-  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
-  
+  const [, setActiveRoomCode] = useState<string | undefined>(undefined);
   const [language, setLanguage] = useState<'en' | 'ur' | 'hi'>('en');
 
-  // Sync state to local storage
+  // Modals
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
+  const [isFreeCoinsModalOpen, setIsFreeCoinsModalOpen] = useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+
+  // Sync state to persistence
   useEffect(() => {
     saveUserData(user);
   }, [user]);
 
   useEffect(() => {
-    saveTransactions(transactions);
-  }, [transactions]);
-
-  useEffect(() => {
-    saveBets(bets);
-  }, [bets]);
-
-  useEffect(() => {
     saveAdminSettings(adminSettings);
   }, [adminSettings]);
 
-  // Handle Game Bet Action
-  const handleGameBet = (betAmount: number, winAmount: number, details: string) => {
+  // Handlers
+  const handleUpdateBalance = (newBalance: number) => {
     setUser((prev) => {
-      const newBalance = Math.max(0, prev.balance - betAmount + winAmount);
-      const newVipExp = prev.vipExp + Math.round(betAmount * 0.1);
-      const newVipLevel = Math.min(10, Math.floor(newVipExp / 1500) + 1);
-
-      return {
-        ...prev,
-        balance: newBalance,
-        vipExp: newVipExp,
-        vipLevel: Math.max(prev.vipLevel, newVipLevel),
-        totalBetAmount: prev.totalBetAmount + betAmount,
-        totalWonAmount: prev.totalWonAmount + winAmount,
-      };
+      const updated = { ...prev, balance: Math.max(0, Math.round(newBalance)) };
+      saveUserData(updated);
+      return updated;
     });
-
-    const newBet: BetRecord = {
-      id: 'BET_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-      gameId: activeGame || 'game',
-      gameTitle: formatGameTitle(activeGame),
-      betAmount,
-      winAmount,
-      multiplier: betAmount > 0 ? +(winAmount / betAmount).toFixed(2) : 0,
-      timestamp: Date.now(),
-      details,
-    };
-
-    setBets((prev) => [newBet, ...prev.slice(0, 49)]);
   };
 
-  const formatGameTitle = (gameId: string | null) => {
-    switch (gameId) {
-      case 'slots_777':
-        return 'Lucky 777 Slots';
-      case 'slots_super_ace':
-        return 'Super Ace 777';
-      case 'slots_fortune_gems':
-        return 'Fortune Gems 777';
-      case 'slots_money_coming':
-        return 'Money Coming 777';
-      case 'crash_aviator':
-        return 'Aviator Crash';
-      case 'arcade_plinko':
-        return 'Plinko Ball Drop';
-      case 'color_wingo':
-        return 'WinGo Color Lottery';
-      case 'dragon_tiger':
-        return 'Dragon vs Tiger';
-      case 'cards_teen_patti':
-        return 'Teen Patti 3-Card';
-      case 'cards_andar_bahar':
-        return 'Andar Bahar Live';
-      case 'casino_roulette':
-        return 'European Roulette';
-      case 'fishing_ocean_king':
-        return 'Fish Hunter 777';
-      case 'mines_treasure':
-        return 'Mines Gold';
-      case 'lucky_wheel':
-        return 'Lucky Spin Wheel';
-      default:
-        return 'Arcade Game';
-    }
-  };
-
-  const handleUpdateUserBalance = (newBalance: number) => {
-    setUser((prev) => ({
-      ...prev,
-      balance: Math.max(0, newBalance),
-    }));
-  };
-
-  const handleRecordGameBet = (
+  const handleRecordBet = (
     gameId: string,
     title: string,
     bet: number,
     win: number,
     mult: number
   ) => {
-    setUser((prev) => {
-      const newVipExp = prev.vipExp + Math.round(bet * 0.1);
-      const newVipLevel = Math.min(10, Math.floor(newVipExp / 1500) + 1);
-      return {
-        ...prev,
-        vipExp: newVipExp,
-        vipLevel: Math.max(prev.vipLevel, newVipLevel),
-        totalBetAmount: prev.totalBetAmount + bet,
-        totalWonAmount: prev.totalWonAmount + win,
-      };
-    });
-
-    const newBet: BetRecord = {
-      id: 'BET_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    const record: BetRecord = {
+      id: 'b_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       gameId,
       gameTitle: title,
       betAmount: bet,
       winAmount: win,
       multiplier: mult,
       timestamp: Date.now(),
-      details: mult > 0 ? `Won x${mult}` : 'Lost',
+      details: win > bet ? `Win ${mult}x` : 'Loss',
     };
+    const updated = [record, ...bets].slice(0, 100);
+    setBets(updated);
+    saveBets(updated);
 
-    setBets((prev) => [newBet, ...prev.slice(0, 49)]);
-  };
-
-  // Launch Game Handler (handles game selection from Landing Page or Lobby)
-  const handleLaunchGame = (gameId: string) => {
-    setIsLandingView(false);
-    setActiveGame(gameId);
-  };
-
-  // Deposit Handler
-  const handleDeposit = (amount: number, method: string, note?: string) => {
+    // Update user stats
     setUser((prev) => ({
       ...prev,
-      balance: prev.balance + amount,
-      unwithdrawnBalance: prev.unwithdrawnBalance + amount,
-      totalDeposited: prev.totalDeposited + amount,
+      totalBetAmount: (prev.totalBetAmount || 0) + bet,
+      totalWonAmount: (prev.totalWonAmount || 0) + win,
+      vipExp: (prev.vipExp || 0) + Math.floor(bet / 10),
     }));
+  };
 
-    const newTx: TransactionRecord = {
-      id: 'TXN_' + Date.now(),
+  const handleDeposit = (
+    amount: number,
+    method: string,
+    accountNumber?: string,
+    tid?: string
+  ) => {
+    const txn: TransactionRecord = {
+      id: tid || 'tx_dep_' + Date.now(),
       type: 'deposit',
       amount,
       method,
       status: 'completed',
       timestamp: Date.now(),
-      note,
+      accountNumber: accountNumber || '03012345678',
+      note: 'Instant Deposit + 5% Bonus',
     };
+    const updatedTxns = [txn, ...transactions];
+    setTransactions(updatedTxns);
+    saveTransactions(updatedTxns);
 
-    setTransactions((prev) => [newTx, ...prev]);
+    setUser((prev) => {
+      const bonus = Math.floor(amount * 0.05);
+      const updated = {
+        ...prev,
+        balance: prev.balance + amount + bonus,
+        totalDeposited: (prev.totalDeposited || 0) + amount,
+        vipExp: (prev.vipExp || 0) + amount,
+      };
+      saveUserData(updated);
+      return updated;
+    });
+
+    triggerWinConfetti();
+    soundService.playSuccess();
+    setIsDepositOpen(false);
   };
 
-  // Withdraw Handler
   const handleWithdraw = (
     amount: number,
     method: string,
     accountNumber: string,
     accountName: string
   ): boolean => {
-    if (amount > user.balance) return false;
-
-    setUser((prev) => ({
-      ...prev,
-      balance: prev.balance - amount,
-      unwithdrawnBalance: Math.max(0, prev.unwithdrawnBalance - amount),
-      totalWithdrawn: prev.totalWithdrawn + amount,
-    }));
-
-    const newTx: TransactionRecord = {
-      id: 'TXN_' + Date.now(),
+    if (user.balance < amount) {
+      soundService.playError();
+      return false;
+    }
+    const txn: TransactionRecord = {
+      id: 'tx_wd_' + Date.now(),
       type: 'withdraw',
       amount,
       method,
+      status: 'pending',
+      timestamp: Date.now(),
       accountNumber,
       accountName,
-      status: 'completed',
-      timestamp: Date.now(),
+      note: 'Withdrawal under manual review',
     };
+    const updatedTxns = [txn, ...transactions];
+    setTransactions(updatedTxns);
+    saveTransactions(updatedTxns);
 
-    setTransactions((prev) => [newTx, ...prev]);
+    setUser((prev) => {
+      const updated = {
+        ...prev,
+        balance: prev.balance - amount,
+        totalWithdrawn: (prev.totalWithdrawn || 0) + amount,
+      };
+      saveUserData(updated);
+      return updated;
+    });
+
+    soundService.playSuccess();
+    setIsWithdrawOpen(false);
     return true;
   };
 
-  // Agent Commission Claim
-  const handleClaimCommission = (amount: number) => {
-    setUser((prev) => ({
-      ...prev,
-      balance: prev.balance + amount,
-    }));
-
-    const newTx: TransactionRecord = {
-      id: 'TXN_' + Date.now(),
-      type: 'commission',
-      amount,
-      method: 'Agent Tier Rebate Transfer',
-      status: 'completed',
-      timestamp: Date.now(),
-    };
-
-    setTransactions((prev) => [newTx, ...prev]);
-    alert(`₨ ${amount} commission transferred to your wallet balance!`);
-  };
-
-  // Daily Streak Check-in
-  const handleDailyCheckIn = (day: number, reward: number) => {
-    setUser((prev) => ({
-      ...prev,
-      balance: prev.balance + reward,
-      dailyStreak: Math.min(7, prev.dailyStreak + 1),
-    }));
-
-    const newTx: TransactionRecord = {
-      id: 'TXN_' + Date.now(),
-      type: 'checkin',
-      amount: reward,
-      method: `Day ${day} Sign-In Reward`,
-      status: 'completed',
-      timestamp: Date.now(),
-    };
-
-    setTransactions((prev) => [newTx, ...prev]);
-    alert(`Day ${day} check-in bonus of ₨ ${reward} claimed!`);
-  };
-
-  // Reset/Refill Demo Balance
   const handleResetDemoBalance = () => {
-    setUser((prev) => ({
-      ...prev,
-      balance: prev.balance + 2000,
-    }));
+    setUser((prev) => {
+      const updated = { ...prev, balance: 50000 };
+      saveUserData(updated);
+      return updated;
+    });
+    soundService.playSuccess();
   };
 
-  // Transaction Admin Approvals
+  const handleAddFreeCoins = (amount: number) => {
+    handleUpdateBalance(user.balance + amount);
+    triggerWinConfetti();
+    soundService.playSuccess();
+  };
+
+  const handleClaimDailyCheckIn = (day: number, reward: number) => {
+    setUser((prev) => {
+      const updated = {
+        ...prev,
+        balance: prev.balance + reward,
+        lastCheckInDate: new Date().toISOString().split('T')[0],
+        dailyStreak: Math.min(7, (prev.dailyStreak || 0) + 1),
+      };
+      saveUserData(updated);
+      return updated;
+    });
+    soundService.playSuccess();
+    triggerWinConfetti();
+  };
+
+  const handleClaimVipReward = (level: number, amount: number) => {
+    setUser((prev) => {
+      const updated = {
+        ...prev,
+        balance: prev.balance + amount,
+        vipLevel: Math.max(prev.vipLevel || 1, level),
+      };
+      saveUserData(updated);
+      return updated;
+    });
+    soundService.playSuccess();
+    triggerWinConfetti();
+  };
+
+  const handleClaimCommission = (amount: number) => {
+    setUser((prev) => {
+      const updated = {
+        ...prev,
+        balance: prev.balance + amount,
+      };
+      saveUserData(updated);
+      return updated;
+    });
+    soundService.playSuccess();
+    triggerWinConfetti();
+  };
+
   const handleApproveTransaction = (id: string) => {
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'completed' } : t))
+    const updated = transactions.map((t) =>
+      t.id === id ? { ...t, status: 'completed' as const } : t
     );
+    setTransactions(updated);
+    saveTransactions(updated);
+    soundService.playSuccess();
   };
 
   const handleRejectTransaction = (id: string) => {
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'rejected' } : t))
-    );
+    const updated = transactions.map((t) => {
+      if (t.id === id) {
+        if (t.type === 'withdraw') {
+          handleUpdateBalance(user.balance + t.amount);
+        }
+        return { ...t, status: 'rejected' as const };
+      }
+      return t;
+    });
+    setTransactions(updated);
+    saveTransactions(updated);
+    soundService.playSuccess();
+  };
+
+  const handleSelectGameRoom = (gameType: string, roomCode?: string) => {
+    setActiveRoomCode(roomCode);
+    setActiveGame(gameType);
+    setIsRoomModalOpen(false);
+  };
+
+  const handleBackToLobby = () => {
+    soundService.playClick();
+    setActiveGame(null);
+  };
+
+  // Helper for Group B games (CrashGame, SlotsGame, DragonTigerGame, MinesGame, ColorPredictionGame, LuckyWheelGame)
+  const handleGroupBBet = (gameId: string, title: string) => {
+    return (amount: number, winAmount: number, details: string) => {
+      const newBal = Math.max(0, user.balance - amount + winAmount);
+      handleUpdateBalance(newBal);
+      const mult = amount > 0 ? Number((winAmount / amount).toFixed(2)) : 0;
+      handleRecordBet(gameId, title, amount, winAmount, mult);
+    };
+  };
+
+  // Render Any of the 45 Active Games
+  const renderActiveGame = () => {
+    if (!activeGame) return null;
+
+    const commonProps = {
+      userBalance: user.balance,
+      onUpdateBalance: handleUpdateBalance,
+      onRecordBet: handleRecordBet,
+      onBack: handleBackToLobby,
+      adminSettings,
+    };
+
+    switch (activeGame) {
+      // 1. Ludo Multiplayer
+      case 'arcade_ludo':
+      case 'ludo':
+        return <LudoGame {...commonProps} />;
+
+      // 2. Teen Patti Classic
+      case 'cards_teen_patti':
+      case 'teen_patti':
+        return <TeenPattiGame {...commonProps} />;
+
+      // 3. Teen Patti 20-20
+      case 'teen_patti_2020':
+        return <TeenPatti2020Game {...commonProps} />;
+
+      // 4. Indian Rummy
+      case 'cards_rummy':
+      case 'rummy':
+        return <RummyGame {...commonProps} />;
+
+      // 5. Crash / SPRIBE Aviator / Jet
+      case 'spribe_aviator':
+      case 'wg_aviator':
+      case '2j_aviator':
+      case 'mg_flyx':
+      case 'crash':
+        return (
+          <CrashGame
+            balance={user.balance}
+            onBet={handleGroupBBet(activeGame, 'Aviator Rocket')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      // 6. Super Ace
+      case 'slots_super_ace':
+        return <SuperAceGame {...commonProps} />;
+
+      // 7. Fortune Gems
+      case 'slots_fortune_gems':
+        return <FortuneGemsGame {...commonProps} />;
+
+      // 8. Money Coming
+      case 'slots_money_coming':
+        return <MoneyComingGame {...commonProps} />;
+
+      // 9. Roma Slot
+      case 'slots_roma':
+        return <RomaSlotGame {...commonProps} />;
+
+      // 10. Fruit Party
+      case 'slots_fruit_party':
+        return <FruitPartySlotGame {...commonProps} />;
+
+      // 11. Aztec Gems
+      case 'slots_aztec_gems':
+        return <AztecGemsSlotGame {...commonProps} />;
+
+      // 12. Mega Win Slots
+      case 'slots_mega_win':
+        return <MegaWinSlotGame {...commonProps} />;
+
+      // 13. Golden Empire
+      case 'slots_golden_empire':
+      case 'golden_empire':
+        return <GoldenEmpireSlotGame {...commonProps} />;
+
+      // 14. Fortune Tree
+      case 'slots_fortune_tree':
+        return <FortuneTreeSlotGame {...commonProps} />;
+
+      // 15. Boxing King
+      case 'slots_boxing_king':
+      case 'boxing_king':
+        return <BoxingKingSlotGame {...commonProps} />;
+
+      // 16. Crazy 777
+      case 'wg_crazy777':
+      case 'slots_crazy777':
+        return <Crazy777Game {...commonProps} />;
+
+      // 17. Classic 777 Slots
+      case 'slots_777':
+      case 'slots':
+        return (
+          <SlotsGame
+            balance={user.balance}
+            onBet={handleGroupBBet(activeGame, 'Classic 777 Slots')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      // 18. Fortune Garuda
+      case 'jili_fortune_garuda':
+      case 'slots_fortune_garuda':
+        return <FortuneGarudaGame {...commonProps} />;
+
+      // 19. Fortune PG (Ox & Tiger)
+      case 'slots_fortune_pg':
+      case 'pg_fortune_ox':
+      case 'pg_fortune_tiger':
+        return <FortunePGSlotGame {...commonProps} />;
+
+      // 20. Three Little Pigs
+      case 'fc_three_pigs':
+        return <FCThreePigsGame {...commonProps} />;
+
+      // 21. Cleopatra
+      case 'pp_cleopatra':
+        return <PPCleopatraGame {...commonProps} />;
+
+      // 22. Andar Bahar
+      case 'cards_andar_bahar':
+      case 'andar_bahar':
+        return <AndarBaharGame {...commonProps} />;
+
+      // 23. Dragon vs Tiger
+      case 'dragon_tiger':
+        return (
+          <DragonTigerGame
+            balance={user.balance}
+            onBet={handleGroupBBet('dragon_tiger', 'Dragon vs Tiger')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      // 24. Texas Hold'em
+      case 'cards_texas_holdem':
+      case 'texas_holdem':
+        return <TexasHoldemGame {...commonProps} />;
+
+      // 25. Blackjack 21
+      case 'cards_blackjack':
+      case 'blackjack':
+        return <BlackjackGame {...commonProps} />;
+
+      // 26. Baccarat VIP
+      case 'cards_baccarat':
+      case 'baccarat':
+        return <BaccaratGame {...commonProps} />;
+
+      // 27. 7 Up 7 Down
+      case 'seven_up_down':
+        return <SevenUpDownGame {...commonProps} />;
+
+      // 28. European Roulette
+      case 'casino_roulette':
+      case 'roulette':
+        return <RouletteGame {...commonProps} />;
+
+      // 29. Zoo Roulette
+      case 'zoo_roulette':
+        return <ZooRouletteGame {...commonProps} />;
+
+      // 30. Car Roulette
+      case 'car_roulette':
+        return <CarRouletteGame {...commonProps} />;
+
+      // 31. Macau Sic Bo
+      case 'sic_bo':
+        return <SicBoGame {...commonProps} />;
+
+      // 32. Dice Master
+      case 'dice_master':
+        return <DiceMasterGame {...commonProps} />;
+
+      // 33. Hi-Lo Predictor
+      case 'hi_lo':
+      case 'hilo_game':
+        return <HiLoGame {...commonProps} />;
+
+      // 34. Red vs Black
+      case 'red_vs_black':
+        return <RedVsBlackGame {...commonProps} />;
+
+      // 35. JILI Cards
+      case 'jili_cards':
+        return <JILICardsGame {...commonProps} />;
+
+      // 36. Spribe Mines
+      case 'spribe_mines':
+      case 'mines':
+        return (
+          <MinesGame
+            balance={user.balance}
+            onBet={handleGroupBBet(activeGame, 'Spribe Mines')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      // 37. Chicken Road
+      case 'inout_chicken_road':
+      case 'chicken_road':
+        return <ChickenRoadGame {...commonProps} />;
+
+      // 38. Plinko Master
+      case 'arcade_plinko':
+      case 'plinko':
+        return <PlinkoGame {...commonProps} />;
+
+      // Arcade Unified Suite (Aviator, Mines, Chicken Road, Plinko)
+      case 'arcade':
+      case 'arcade_suite':
+      case 'spribe_arcade':
+        return <ArcadePage {...commonProps} />;
+
+      // 39. Color Prediction / WinGo
+      case 'color_wingo':
+      case 'color_prediction':
+        return (
+          <ColorPredictionGame
+            balance={user.balance}
+            onBet={handleGroupBBet(activeGame, 'WinGo Color')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      // 40. Sportsbook
+      case '9wickets_sports':
+      case 'saba_sports':
+      case 'sbovip_sports':
+      case 'sportsbook':
+        return (
+          <SportsbookGame
+            {...commonProps}
+            provider={activeGame.includes('saba') ? 'SABA Sports' : '9Wickets'}
+          />
+        );
+
+      // 41. Live Casino
+      case 'live_casino':
+      case 'tg_live':
+      case 'pp_live':
+      case 'sexy_live':
+        return (
+          <LiveCasinoGame
+            {...commonProps}
+            dealerType={
+              activeGame.includes('sexy')
+                ? 'Sexy Live'
+                : activeGame.includes('pp')
+                ? 'Pragmatic Play Live'
+                : 'TG VIP Live'
+            }
+          />
+        );
+
+      // 42. Cai Shen Fishing
+      case 'jili_cai_shen_fishing':
+      case 'wg_caishen_fishing':
+      case 'cai_shen_fishing':
+        return <CaiShenFishingGame {...commonProps} />;
+
+      // 43. Happy Ocean Fishing
+      case 'jili_happy_fishing':
+      case 'happy_fishing':
+      case 'ygr_fishing':
+      case 'fishing_game':
+        return <FishingGame {...commonProps} />;
+
+      // 44. JDB Piggy Bank
+      case 'jdb_piggy_bank':
+      case 'piggy_bank':
+        return <PiggyBankGame {...commonProps} />;
+
+      // 45. Lucky Prize Wheel
+      case 'lucky_wheel':
+        return (
+          <LuckyWheelGame
+            balance={user.balance}
+            onBet={handleGroupBBet('lucky_wheel', 'Lucky Prize Wheel')}
+            onBack={handleBackToLobby}
+            adminSettings={adminSettings}
+          />
+        );
+
+      default:
+        return <SuperAceGame {...commonProps} />;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#070a12] text-slate-100 font-sans flex flex-col selection:bg-amber-400 selection:text-slate-950">
-      {/* Top Header */}
-      <Header
-        user={user}
-        onOpenDeposit={() => setIsDepositOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onResetDemoBalance={handleResetDemoBalance}
-        onOpenDownload={() => setIsDownloadOpen(true)}
-        onOpenDrawer={() => setIsDrawerOpen(true)}
-        language={language}
-        onLanguageChange={setLanguage}
-      />
+    <div className="min-h-screen bg-[#070b16] text-slate-100 flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950">
+      {/* 1. Global Header Bar (Always available or within game) */}
+      {!activeGame && (
+        <Header
+          user={user}
+          onOpenDeposit={() => setIsDepositOpen(true)}
+          onOpenAdmin={() => setIsAdminOpen(true)}
+          onResetDemoBalance={handleResetDemoBalance}
+          onOpenDownload={() => setIsDownloadOpen(true)}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          language={language}
+          onLanguageChange={setLanguage}
+        />
+      )}
 
-      {/* Ticker Marquee */}
-      <Marquee notice={adminSettings.systemNotice} />
-
-      {/* View Switcher Header Bar (Landing vs Lobby vs APK) */}
-      <div className="max-w-7xl w-full mx-auto px-2 sm:px-4 pt-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-xl p-1 text-xs">
-          <button
-            onClick={() => {
-              setIsLandingView(false);
-              setActiveGame(null);
-            }}
-            className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-              !isLandingView && !activeGame
-                ? 'bg-amber-400 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            🎮 Games Lobby
-          </button>
-          <button
-            onClick={() => {
-              setIsLandingView(true);
-              setActiveGame(null);
-            }}
-            className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-              isLandingView
-                ? 'bg-amber-400 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            ✨ Landing Page
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setIsDownloadOpen(true)}
-            className="px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-          >
-            <span>📲 APK Bonus Rs 999</span>
-          </button>
-          <button
-            onClick={() => setIsAuthOpen(true)}
-            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-          >
-            <span>👤 Switch User</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4">
+      {/* 2. Main Portal Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6">
         {activeGame ? (
-          // Render Active Game
-          <div>
-            {(activeGame === 'spribe_aviator' ||
-              activeGame === 'wg_aviator' ||
-              activeGame === '2j_aviator' ||
-              activeGame === 'wg_crash' ||
-              activeGame === 'crash_aviator' ||
-              activeGame === 'mg_flyx') && (
-              <CrashGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'inout_chicken_road' && (
-              <ChickenRoadGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'jdb_piggy_bank' && (
-              <PiggyBankGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {(activeGame === '9wickets_sports' ||
-              activeGame === 'saba_sports' ||
-              activeGame === 'wg_sports') && (
-              <SportsbookGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-                provider={
-                  activeGame === '9wickets_sports'
-                    ? '9wickets'
-                    : activeGame === 'saba_sports'
-                    ? 'saba'
-                    : 'wg'
-                }
-              />
-            )}
-            {activeGame === 'pg_slot' && (
-              <FortunePGSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'wg_crazy777' && (
-              <Crazy777Game
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'jili_fortune_garuda' && (
-              <FortuneGarudaGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'fc_slot' && (
-              <FCThreePigsGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'pp_slot' && (
-              <PPCleopatraGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {(activeGame === 'tg_live' ||
-              activeGame === 'pp_live' ||
-              activeGame === 'sexy_live') && (
-              <LiveCasinoGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-                dealerType={
-                  activeGame === 'tg_live'
-                    ? 'tg'
-                    : activeGame === 'pp_live'
-                    ? 'pp'
-                    : 'sexy'
-                }
-              />
-            )}
-            {(activeGame === 'jili_cards' || activeGame === 'kingmidas_cards') && (
-              <JILICardsGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-                gameType={activeGame === 'kingmidas_cards' ? 'kingmidas' : '7up'}
-              />
-            )}
-            {(activeGame === 'jili_happy_fishing' ||
-              activeGame === 'wg_caishen_fishing' ||
-              activeGame === 'ygr_fishing' ||
-              activeGame === 'fishing_ocean_king') && (
-              <CaiShenFishingGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-                theme={
-                  activeGame === 'jili_happy_fishing'
-                    ? 'happy'
-                    : activeGame === 'ygr_fishing'
-                    ? 'ygr'
-                    : 'caishen'
-                }
-              />
-            )}
-            {(activeGame === 'spribe_mines' || activeGame === 'mines_treasure') && (
-              <MinesGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_777' && (
-              <SlotsGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_super_ace' && (
-              <SuperAceGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_fortune_gems' && (
-              <FortuneGemsGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_money_coming' && (
-              <MoneyComingGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'arcade_plinko' && (
-              <PlinkoGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'color_wingo' && (
-              <ColorPredictionGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'dragon_tiger' && (
-              <DragonTigerGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_teen_patti' && (
-              <TeenPattiGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_andar_bahar' && (
-              <AndarBaharGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'casino_roulette' && (
-              <RouletteGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'lucky_wheel' && (
-              <LuckyWheelGame
-                balance={user.balance}
-                onBet={handleGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'teen_patti_2020' && (
-              <TeenPatti2020Game
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_rummy' && (
-              <RummyGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_texas_holdem' && (
-              <TexasHoldemGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_blackjack' && (
-              <BlackjackGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'cards_baccarat' && (
-              <BaccaratGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'arcade_ludo' && (
-              <LudoGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_roma' && (
-              <RomaSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_fruit_party' && (
-              <FruitPartySlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_aztec_gems' && (
-              <AztecGemsSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_mega_win' && (
-              <MegaWinSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_golden_empire' && (
-              <GoldenEmpireSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_fortune_tree' && (
-              <FortuneTreeSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'slots_boxing_king' && (
-              <BoxingKingSlotGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'zoo_roulette' && (
-              <ZooRouletteGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'car_roulette' && (
-              <CarRouletteGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'seven_up_down' && (
-              <SevenUpDownGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'dice_master' && (
-              <DiceMasterGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'red_vs_black' && (
-              <RedVsBlackGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'sic_bo' && (
-              <SicBoGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
-            {activeGame === 'hilo_game' && (
-              <HiLoGame
-                userBalance={user.balance}
-                onUpdateBalance={handleUpdateUserBalance}
-                onRecordBet={handleRecordGameBet}
-                onBack={() => setActiveGame(null)}
-                adminSettings={adminSettings}
-              />
-            )}
+          /* Active Interactive Game View */
+          <div className="w-full transition-all duration-300">
+            {renderActiveGame()}
           </div>
-        ) : isLandingView ? (
-          // Render Landing Page
-          <LandingPage
-            onPlayGame={handleLaunchGame}
-            onOpenLobby={() => {
-              setIsLandingView(false);
-              setActiveTab('lobby');
-            }}
-            onOpenDeposit={() => setIsDepositOpen(true)}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            onOpenAppDownload={() => setIsDownloadOpen(true)}
-            jackpotAmount={adminSettings.jackpotBalance || 7789420}
-          />
         ) : (
-          // Render Active Tab
-          <div>
+          /* Main Platform Tabs */
+          <div className="w-full">
             {activeTab === 'lobby' && (
               <LobbyTab
-                onSelectGame={(gameId) => setActiveGame(gameId)}
-                onOpenDeposit={() => setIsDepositOpen(true)}
-                onOpenSupport={() => {
-                  setActiveTab('support');
+                onSelectGame={(gameId) => {
+                  soundService.playClick();
+                  setActiveGame(gameId);
                 }}
+                onOpenDeposit={() => setIsDepositOpen(true)}
+                onOpenSupport={() => setIsLiveChatOpen(true)}
+                onOpenDownload={() => setIsDownloadOpen(true)}
+                onOpenInvite={() => setActiveTab('agent')}
+                onOpenSpinWheel={() => setActiveGame('lucky_wheel')}
+                onOpenRoomModal={() => setIsRoomModalOpen(true)}
+                onOpenFreeCoins={() => setIsFreeCoinsModalOpen(true)}
+                onOpenRules={() => setIsRulesModalOpen(true)}
                 language={language}
               />
             )}
+
             {activeTab === 'activity' && (
               <ActivityTab
                 user={user}
-                onClaimDailyCheckIn={handleDailyCheckIn}
-                onClaimVipReward={() => {}}
+                onClaimDailyCheckIn={handleClaimDailyCheckIn}
+                onClaimVipReward={handleClaimVipReward}
                 onBack={() => setActiveTab('lobby')}
                 onOpenDeposit={() => setIsDepositOpen(true)}
                 language={language}
               />
             )}
+
             {activeTab === 'agent' && (
               <AgentTab
                 user={user}
@@ -890,6 +700,7 @@ export default function App() {
                 language={language}
               />
             )}
+
             {activeTab === 'support' && (
               <SupportTab
                 onBack={() => setActiveTab('lobby')}
@@ -897,6 +708,7 @@ export default function App() {
                 language={language}
               />
             )}
+
             {activeTab === 'profile' && (
               <ProfileTab
                 user={user}
@@ -904,71 +716,84 @@ export default function App() {
                 onOpenAdmin={() => setIsAdminOpen(true)}
                 onOpenDeposit={() => setIsDepositOpen(true)}
                 onOpenWithdraw={() => setIsWithdrawOpen(true)}
-                onOpenSupport={() => {
-                  setActiveTab('support');
-                }}
+                onOpenSupport={() => setIsLiveChatOpen(true)}
                 onResetDemoBalance={handleResetDemoBalance}
                 onSelectTab={(tab) => setActiveTab(tab)}
                 onOpenAuth={() => setIsAuthOpen(true)}
                 onBack={() => setActiveTab('lobby')}
                 language={language}
-                onLanguageChange={setLanguage}
+              />
+            )}
+
+            {activeTab === 'wallet' && (
+              <WalletTab
+                user={user}
+                transactions={transactions}
+                onDeposit={(amount, method, note) => handleDeposit(amount, method, undefined, note)}
+                onWithdraw={handleWithdraw}
+                language={language}
               />
             )}
           </div>
         )}
       </main>
 
-      {/* Floating Bottom Navbar (hidden inside active full game view) */}
+      {/* 3. Bottom Sticky Navbar (Shown when in main lobby / tabs) */}
       {!activeGame && (
         <Navbar
-          activeTab={activeTab}
+          activeTab={activeTab === 'wallet' ? 'profile' : activeTab}
           onSelectTab={(tab) => {
-            setIsLandingView(false);
+            soundService.playClick();
             setActiveTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           language={language}
         />
       )}
 
-      {/* Sliding Navigation Left Drawer */}
+      {/* 4. Drawer Menu */}
       <DrawerMenu
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         user={user}
         onSelectTab={(tab) => {
-          setIsLandingView(false);
           setActiveTab(tab);
+          setIsDrawerOpen(false);
+          setActiveGame(null);
         }}
-        onOpenDeposit={() => setIsDepositOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onOpenDownload={() => setIsDownloadOpen(true)}
-        onOpenAuth={() => setIsAuthOpen(true)}
+        onSelectCategory={() => {
+          setActiveTab('lobby');
+          setActiveGame(null);
+          setIsDrawerOpen(false);
+        }}
+        onOpenDeposit={() => {
+          setIsDrawerOpen(false);
+          setIsDepositOpen(true);
+        }}
+        onOpenAdmin={() => {
+          setIsDrawerOpen(false);
+          setIsAdminOpen(true);
+        }}
+        onOpenDownload={() => {
+          setIsDrawerOpen(false);
+          setIsDownloadOpen(true);
+        }}
+        onOpenAuth={() => {
+          setIsDrawerOpen(false);
+          setIsAuthOpen(true);
+        }}
         language={language}
         onLanguageChange={setLanguage}
       />
 
-      {/* Admin Panel Modal */}
-      <AdminModal
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        adminSettings={adminSettings}
-        onUpdateAdminSettings={setAdminSettings}
-        user={user}
-        onUpdateUserBalance={(newBal) => setUser((prev) => ({ ...prev, balance: newBal }))}
-        transactions={transactions}
-        onApproveTransaction={handleApproveTransaction}
-        onRejectTransaction={handleRejectTransaction}
-      />
-
-      {/* Quick Deposit Modal */}
+      {/* 5. Deposit Modal */}
       <DepositModal
         isOpen={isDepositOpen}
         onClose={() => setIsDepositOpen(false)}
         onDeposit={handleDeposit}
       />
 
-      {/* Quick Withdraw Modal */}
+      {/* 6. Withdraw Modal */}
       <WithdrawModal
         isOpen={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}
@@ -976,25 +801,66 @@ export default function App() {
         onWithdraw={handleWithdraw}
       />
 
-      {/* Auth & Switch User Modal */}
+      {/* 7. Master Admin Control Panel */}
+      <AdminModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        adminSettings={adminSettings}
+        onUpdateAdminSettings={setAdminSettings}
+        user={user}
+        onUpdateUserBalance={handleUpdateBalance}
+        onSwitchUser={(newUser) => setUser(newUser)}
+        transactions={transactions}
+        onApproveTransaction={handleApproveTransaction}
+        onRejectTransaction={handleRejectTransaction}
+        onResetDatabase={handleResetDemoBalance}
+      />
+
+      {/* 8. Auth / Switch User Modal */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         currentUser={user}
-        onLoginSuccess={(loggedUser) => setUser(loggedUser)}
+        onLoginSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          setIsAuthOpen(false);
+          soundService.playSuccess();
+        }}
       />
 
-      {/* Official APK & WebApp Download Modal */}
+      {/* 9. 24/7 Live Support Chat Modal */}
+      <LiveChatModal
+        isOpen={isLiveChatOpen}
+        onClose={() => setIsLiveChatOpen(false)}
+        userId={user.id}
+      />
+
+      {/* 10. APK / Mobile App Download Modal */}
       <AppDownloadModal
         isOpen={isDownloadOpen}
         onClose={() => setIsDownloadOpen(false)}
       />
 
-      {/* 24/7 Live Customer Chat Modal */}
-      <LiveChatModal
-        isOpen={isLiveChatOpen}
-        onClose={() => setIsLiveChatOpen(false)}
-        userId={user.id}
+      {/* 11. Multiplayer Room Lobby Modal */}
+      <RoomLobbyModal
+        isOpen={isRoomModalOpen}
+        onClose={() => setIsRoomModalOpen(false)}
+        userCoins={user.balance}
+        onSelectGameRoom={handleSelectGameRoom}
+      />
+
+      {/* 12. Free Practice Coins Faucet Modal */}
+      <FreeCoinsModal
+        isOpen={isFreeCoinsModalOpen}
+        onClose={() => setIsFreeCoinsModalOpen(false)}
+        userCoins={user.balance}
+        onAddCoins={handleAddFreeCoins}
+      />
+
+      {/* 13. Game Rules & How to Play Modal */}
+      <RulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
       />
     </div>
   );

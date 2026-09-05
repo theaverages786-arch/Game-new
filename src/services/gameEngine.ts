@@ -81,8 +81,8 @@ export function playOutcomeCelebration(
 }
 
 /**
- * Format currency in Pakistani Rupees (PKR)
+ * Format currency as Educational Play-Money Coins
  */
 export function formatPKR(val: number): string {
-  return `₨ ${Math.round(val).toLocaleString()}`;
+  return `🪙 ${Math.round(val).toLocaleString()} Coins`;
 }
