@@ -74,10 +74,10 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({ isOpen, onCl
             <Smartphone className="w-7 h-7 text-slate-950" />
           </div>
           <h3 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent">
-            777 Premier Official App
+            777 P999 Official App
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Android APK (v2.8.4) & iOS Web App &bull; Fast & Secure
+            Android APK (v2.8.4) & iOS Web App &bull; Ref: <strong className="text-amber-400 font-mono">8khvdc</strong>
           </p>
         </div>
 
@@ -131,9 +131,10 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({ isOpen, onCl
 
               <div className="text-center sm:text-left space-y-1">
                 <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wide">Direct Package Info</span>
-                <h4 className="font-extrabold text-sm text-slate-100">777p999_Premier_v2.8.apk</h4>
+                <h4 className="font-extrabold text-sm text-slate-100">777p999_8khvdc.apk</h4>
                 <div className="text-xs text-slate-400">Size: 28.4 MB &bull; Requires Android 5.0+</div>
                 <div className="text-[10px] text-emerald-400 font-bold">✓ 100% Virus & Malware Free Verified</div>
+                <div className="text-[10px] text-amber-300 font-mono">Download Ref URL: 777p999.com/?dl=8khvdc</div>
               </div>
             </div>
 
@@ -144,13 +145,13 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({ isOpen, onCl
                 className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/30 text-sm tracking-wider flex items-center justify-center gap-2 transform active:scale-95 transition cursor-pointer"
               >
                 <Download className="w-5 h-5" />
-                <span>DOWNLOAD ANDROID APK NOW</span>
+                <span>DOWNLOAD 777 P999 APK NOW</span>
               </button>
             ) : (
               <div className="space-y-2 bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-amber-300">
-                    {downloadComplete ? '✅ Download Complete!' : 'Downloading 777 Premier APK...'}
+                    {downloadComplete ? '✅ Download Complete (777p999_8khvdc.apk)!' : 'Downloading 777 P999 APK...'}
                   </span>
                   <span className="font-mono text-amber-400">{downloadProgress}%</span>
                 </div>
@@ -176,7 +177,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({ isOpen, onCl
               <div className="space-y-1.5 text-slate-300">
                 <div className="flex items-start gap-2">
                   <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-                  <span>Tap "Download APK" above.</span>
+                  <span>Tap "Download 777 P999 APK" above.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
@@ -184,7 +185,7 @@ export const AppDownloadModal: React.FC<AppDownloadModalProps> = ({ isOpen, onCl
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
-                  <span>Open 777 Premier, login, and claim your exclusive app bonus!</span>
+                  <span>Open 777 P999, login or register with ref code <strong>8khvdc</strong>, and claim Rs 999 bonus!</span>
                 </div>
               </div>
             </div>

@@ -80,6 +80,11 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
   const balanceRef = useRef(userBalance);
   balanceRef.current = userBalance;
 
+  // Realism enhancements: peg impacts, ball trails, bucket spark fountains
+  const pegImpactsRef = useRef<Array<{ x: number; y: number; life: number; maxLife: number; color: string }>>([]);
+  const trailsRef = useRef<Map<number, Array<{ x: number; y: number }>>>(new Map());
+  const sparkParticlesRef = useRef<Array<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; color: string }>>([]);
+
   const multipliers = PLINKO_PAYOUTS[rows]?.[risk] || PLINKO_PAYOUTS[12].high;
 
   // Initialize and rebuild physics world whenever rows change
@@ -147,7 +152,16 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
 
         if (ball && other.label?.startsWith('peg_')) {
           const rowNum = parseInt(other.label.split('_')[1] || '0', 10);
-          soundService.playPlinkoPeg(rowNum / rows);
+          const safeRowNum = Number.isFinite(rowNum) ? rowNum : 0;
+          const safeRows = (Number.isFinite(rows) && rows > 0) ? rows : 12;
+          soundService.playPlinkoPeg(safeRowNum / safeRows);
+          pegImpactsRef.current.push({
+            x: other.position.x,
+            y: other.position.y,
+            life: 0,
+            maxLife: 16,
+            color: '#FBBF24',
+          });
         }
       });
     });
@@ -169,16 +183,36 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Draw Pegs (Glowing White Dots)
+      // Draw Pegs (Glowing Metallic Pins)
       pegBodies.forEach((peg) => {
         ctx.beginPath();
         ctx.arc(peg.position.x, peg.position.y, pegRadius, 0, Math.PI * 2);
         ctx.fillStyle = '#FFFFFF';
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        ctx.shadowBlur = 5;
         ctx.fill();
         ctx.shadowBlur = 0;
       });
+
+      // Update & Draw Peg Impact Ripples
+      for (let i = pegImpactsRef.current.length - 1; i >= 0; i--) {
+        const imp = pegImpactsRef.current[i];
+        imp.life++;
+        const alpha = Math.max(0, 1 - imp.life / imp.maxLife);
+
+        ctx.beginPath();
+        ctx.arc(imp.x, imp.y, pegRadius + (1 - alpha) * 11, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(251, 191, 36, ${alpha * 0.9})`;
+        ctx.lineWidth = 2.2 * alpha;
+        ctx.shadowColor = '#FBBF24';
+        ctx.shadowBlur = 6;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        if (imp.life >= imp.maxLife) {
+          pegImpactsRef.current.splice(i, 1);
+        }
+      }
 
       // Draw and check balls
       const allBodies = Matter.Composite.allBodies(engine.world);
@@ -187,19 +221,60 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
       allBodies.forEach((body) => {
         if (body.label === 'plinko_ball') {
           const meta = ballMetaRef.current.get(body.id);
+          const ballColor = meta?.color || '#38bdf8';
 
-          // Draw ball with neon glow
+          // Track Comet Trail
+          let trail = trailsRef.current.get(body.id);
+          if (!trail) {
+            trail = [];
+            trailsRef.current.set(body.id, trail);
+          }
+          trail.push({ x: body.position.x, y: body.position.y });
+          if (trail.length > 8) trail.shift();
+
+          // Render Comet Motion Trail
+          for (let t = 0; t < trail.length - 1; t++) {
+            const p1 = trail[t];
+            const p2 = trail[t + 1];
+            const tAlpha = (t + 1) / trail.length;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = ballColor;
+            ctx.globalAlpha = tAlpha * 0.4;
+            ctx.lineWidth = 5 * tAlpha;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Draw 3D Glossy Acrylic Ball with Specular Highlight
+          const ballGrad = ctx.createRadialGradient(
+            body.position.x - 2.5,
+            body.position.y - 2.5,
+            1,
+            body.position.x,
+            body.position.y,
+            7.5
+          );
+          ballGrad.addColorStop(0, '#FFFFFF');
+          ballGrad.addColorStop(0.35, ballColor);
+          ballGrad.addColorStop(1, '#07243c');
+
           ctx.beginPath();
           ctx.arc(body.position.x, body.position.y, 7, 0, Math.PI * 2);
-          ctx.fillStyle = meta?.color || '#38bdf8';
-          ctx.shadowColor = meta?.color || '#0284c7';
-          ctx.shadowBlur = 10;
+          ctx.fillStyle = ballGrad;
+          ctx.shadowColor = ballColor;
+          ctx.shadowBlur = 12;
           ctx.fill();
           ctx.shadowBlur = 0;
 
           // Check if ball passed bottom line
           if (body.position.y >= height - 48) {
             ballsToRemove.push(body);
+            trailsRef.current.delete(body.id);
 
             // Compute bucket index
             const bucketCount = multipliers.length;
@@ -218,6 +293,21 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
             const mult = multipliers[bucketIdx];
             const ballBet = meta?.bet || bet;
             const win = Math.round(ballBet * mult);
+
+            // Spawn upward bucket fireworks / spark particles
+            for (let s = 0; s < 12; s++) {
+              const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+              const spd = 2 + Math.random() * 4.5;
+              sparkParticlesRef.current.push({
+                x: body.position.x,
+                y: height - 48,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd,
+                life: 0,
+                maxLife: 22 + Math.random() * 10,
+                color: mult >= 2 ? '#10B981' : '#F59E0B',
+              });
+            }
 
             // Trigger bucket reaction
             setActiveBucket(bucketIdx);
@@ -243,6 +333,30 @@ export const PlinkoGame: React.FC<PlinkoProps> = ({
         ballMetaRef.current.delete(b.id);
         Matter.World.remove(engine.world, b);
       });
+
+      // Update and Draw Bucket Sparks
+      for (let s = sparkParticlesRef.current.length - 1; s >= 0; s--) {
+        const sp = sparkParticlesRef.current[s];
+        sp.x += sp.vx;
+        sp.y += sp.vy;
+        sp.vy += 0.15; // Gravity on sparks
+        sp.life++;
+        const sAlpha = Math.max(0, 1 - sp.life / sp.maxLife);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 2.5 * sAlpha, 0, Math.PI * 2);
+        ctx.fillStyle = sp.color;
+        ctx.globalAlpha = sAlpha;
+        ctx.shadowColor = sp.color;
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.restore();
+
+        if (sp.life >= sp.maxLife) {
+          sparkParticlesRef.current.splice(s, 1);
+        }
+      }
 
       animId = requestAnimationFrame(render);
     };

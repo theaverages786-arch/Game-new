@@ -184,8 +184,9 @@ export const ChickenRoadGame: React.FC<ChickenRoadGameProps> = ({
       setGameState('crashed');
       onRecordBet('inout_chicken_road', 'Chicken Road 2.0', betAmount, 0, 0);
     } else {
-      // Safe Bone / Gem revealed with ding sound!
+      // Safe Bone / Gem revealed with ding sound and hop!
       const nextStep = currentLane + 1;
+      soundService.playChickenHop(nextStep / LANES_DATA.length);
       soundService.playDiamondSparkle(nextStep);
       setCurrentLane(nextStep);
 
@@ -476,21 +477,25 @@ export const ChickenRoadGame: React.FC<ChickenRoadGameProps> = ({
               return (
                 <div
                   key={lIdx}
-                  className={`p-2 rounded-2xl border transition-all flex items-center gap-2 sm:gap-3 ${
+                  className={`p-2.5 rounded-2xl border transition-all flex items-center gap-2 sm:gap-3 relative overflow-hidden ${
                     isCurrentLane
-                      ? 'bg-amber-400/10 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      ? 'bg-gradient-to-r from-amber-500/20 via-slate-900/90 to-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/40'
                       : isPassedLane
-                      ? 'bg-emerald-950/20 border-emerald-500/30'
-                      : 'bg-slate-900/40 border-white/5 opacity-75'
+                      ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-900/40 border-emerald-500/40'
+                      : 'bg-slate-900/50 border-white/5 opacity-70'
                   }`}
                 >
-                  {/* Lane Milestone Tag */}
-                  <div className="w-16 sm:w-20 shrink-0 text-left">
-                    <div className="text-[10px] font-bold text-slate-400 truncate">
-                      {laneConfig.name}
+                  {/* Road Center Dashed Line decoration */}
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] border-b border-dashed border-white/10 pointer-events-none" />
+
+                  {/* Lane Milestone Sign */}
+                  <div className="w-20 sm:w-24 shrink-0 text-left">
+                    <div className="text-[10px] font-bold text-slate-400 truncate flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
+                      <span>{laneConfig.name}</span>
                     </div>
                     <div
-                      className={`text-xs sm:text-sm font-black font-mono ${
+                      className={`text-xs sm:text-sm font-black font-mono tracking-tight ${
                         isCurrentLane
                           ? 'text-amber-300'
                           : isPassedLane
@@ -512,43 +517,53 @@ export const ChickenRoadGame: React.FC<ChickenRoadGameProps> = ({
                           key={tile.colIndex}
                           disabled={!isClickable}
                           onClick={() => handleTileClick(lIdx, tile.colIndex)}
-                          whileHover={isClickable ? { scale: 1.06 } : {}}
-                          whileTap={isClickable ? { scale: 0.94 } : {}}
-                          className={`h-12 sm:h-14 rounded-xl flex items-center justify-center transition-all select-none relative cursor-pointer ${
+                          whileHover={isClickable ? { scale: 1.06, y: -2 } : {}}
+                          whileTap={isClickable ? { scale: 0.94, y: 1 } : {}}
+                          transition={{ duration: 0.15, ease: 'easeOut' }}
+                          className={`h-12 sm:h-14 rounded-xl flex items-center justify-center select-none relative cursor-pointer shadow-md transition-colors ${
                             !tile.revealed
                               ? isClickable
-                                ? 'backdrop-blur-md bg-white/10 border border-amber-400/50 hover:bg-amber-400/20 shadow-md shadow-amber-500/10'
-                                : 'backdrop-blur-md bg-white/5 border border-white/10'
+                                ? 'bg-gradient-to-b from-amber-500/20 via-slate-800/80 to-slate-950 border border-amber-400/60 hover:border-amber-300 hover:bg-amber-400/30 shadow-amber-500/20'
+                                : 'bg-slate-850/80 border border-white/10'
                               : tile.isHazard
-                              ? 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-900 border-2 border-rose-300 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
-                              : 'bg-gradient-to-b from-emerald-600/90 via-teal-700/90 to-slate-900 border-2 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
+                              ? 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-950 border-2 border-rose-300 shadow-[0_0_20px_rgba(239,68,68,0.8)]'
+                              : 'bg-gradient-to-b from-emerald-500/30 via-teal-700/40 to-slate-950 border-2 border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.5)]'
                           }`}
                         >
                           {tile.revealed ? (
                             <motion.div
                               initial={{ scale: 0.2, rotateY: 180 }}
                               animate={{ scale: 1, rotateY: 0 }}
-                              transition={{ duration: 0.35, ease: 'easeOut' }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                             >
                               {tile.isHazard ? (
-                                <Bomb className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-[0_0_10px_rgba(239,68,68,1)] animate-pulse" />
+                                <Bomb className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-[0_0_12px_rgba(239,68,68,1)] animate-bounce" />
                               ) : (
-                                <span className="text-xl sm:text-2xl drop-shadow-[0_0_10px_rgba(16,185,129,0.9)]">
+                                <span className="text-xl sm:text-2xl drop-shadow-[0_0_12px_rgba(16,185,129,0.9)]">
                                   💎
                                 </span>
                               )}
                             </motion.div>
                           ) : (
                             isClickable && (
-                              <div className="w-2 h-2 rounded-full bg-amber-400/60 animate-ping" />
+                              <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70 animate-ping" />
                             )
                           )}
 
-                          {/* Chicken Icon Overlay on current position */}
-                          {tile.isPicked && !tile.isHazard && (
-                            <div className="absolute -top-2 -right-1 text-sm sm:text-base animate-bounce">
-                              🐔
-                            </div>
+                          {/* Animated Chicken Mascot */}
+                          {tile.isPicked && (
+                            <motion.div
+                              initial={{ y: -18, scale: 0.7 }}
+                              animate={
+                                tile.isHazard
+                                  ? { rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }
+                                  : { y: [0, -8, 0], scaleY: [1, 1.15, 0.9, 1] }
+                              }
+                              transition={{ duration: 0.4, repeat: tile.isHazard ? 0 : Infinity, repeatDelay: 1.2 }}
+                              className="absolute -top-3.5 -right-1 text-base sm:text-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] z-10 select-none pointer-events-none"
+                            >
+                              {tile.isHazard ? '🍗' : '🐔'}
+                            </motion.div>
                           )}
                         </motion.button>
                       );

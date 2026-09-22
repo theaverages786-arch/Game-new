@@ -51,8 +51,8 @@ export const AgentTab: React.FC<AgentTabProps> = ({
   const [sendSuccess, setSendSuccess] = useState(false);
 
   // Agency mock data
-  const agentId = user.referralCode || '193623200';
-  const shareLink = `https://111p999.com/?dl=37a0m8`;
+  const agentId = user.referralCode || '8khvdc';
+  const shareLink = `https://777p999.com/?dl=8khvdc`;
   const unclaimedCommission = 350.0;
   const claimedCommission = 1250.0;
   const yesterdayDirect = 450.0;

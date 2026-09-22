@@ -65,10 +65,13 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
         <div className="p-4 bg-gradient-to-b from-[#0e223d] to-[#08172b] border-b border-slate-700/80">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-xs shadow">
-                P999
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-600 via-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 font-black text-xs shadow border border-amber-300/40">
+                777
               </div>
-              <span className="font-bold text-white text-sm tracking-wide">P999 Menu</span>
+              <div className="flex items-center gap-1">
+                <span className="font-black text-amber-400 text-sm tracking-wide">777</span>
+                <span className="font-bold text-white text-sm tracking-wide">P999 Menu</span>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -92,7 +95,7 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({
                       VIP {user.vipLevel}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">ID: {user.id || '193623200'}</div>
+                  <div className="text-[10px] text-slate-400 font-mono">ID: {user.id || '8khvdc'}</div>
                 </div>
               </div>
             </div>

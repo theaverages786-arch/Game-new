@@ -57,11 +57,11 @@ export const Header: React.FC<HeaderProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
             <div className="flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-md bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px] shadow">
-                P
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px] shadow">
+                777
               </span>
               <span className="text-[11px] sm:text-xs font-bold text-yellow-100">
-                P999 Download app bonus <strong className="text-amber-300 font-extrabold">Rs 999</strong>
+                777 P999 APK Download (Ref: <strong className="text-amber-300 font-mono">8khvdc</strong>) • Get <strong className="text-amber-300 font-extrabold">Rs 999</strong> Bonus
               </span>
             </div>
           </div>
@@ -71,9 +71,10 @@ export const Header: React.FC<HeaderProps> = ({
               soundService.playClick();
               onOpenDownload();
             }}
-            className="bg-[#24a159] hover:bg-[#2bc26c] text-white px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow transition cursor-pointer"
+            className="bg-[#24a159] hover:bg-[#2bc26c] text-white px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold shadow transition cursor-pointer flex items-center gap-1"
           >
-            Download now
+            <Download className="w-3 h-3" />
+            <span>Download APK</span>
           </button>
         </div>
       )}
@@ -97,17 +98,22 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* P999 Brand Logo */}
-          <div className="flex items-center gap-1.5 cursor-pointer" onClick={onOpenDrawer}>
-            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 via-amber-500 to-amber-300 flex items-center justify-center shadow-md border border-amber-300/40">
-              <span className="font-black text-slate-950 text-xs italic tracking-tighter">P999</span>
+          {/* 777 P999 Brand Logo */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={onOpenDrawer}>
+            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-600 via-amber-500 to-yellow-300 flex items-center justify-center shadow-md border border-amber-300/60">
+              <span className="font-black text-slate-950 text-[11px] italic tracking-tight">777</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-sm sm:text-base tracking-wider text-white uppercase italic leading-none drop-shadow">
-                P999
-              </span>
-              <span className="text-[8px] font-bold text-amber-400 uppercase tracking-widest leading-none mt-0.5">
-                Official Casino
+              <div className="flex items-center gap-1">
+                <span className="font-black text-sm sm:text-base tracking-wider text-amber-400 uppercase italic leading-none drop-shadow">
+                  777
+                </span>
+                <span className="font-black text-sm sm:text-base tracking-wider text-white uppercase italic leading-none drop-shadow">
+                  P999
+                </span>
+              </div>
+              <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest leading-none mt-0.5">
+                Official Portal
               </span>
             </div>
           </div>

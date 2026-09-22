@@ -90,9 +90,28 @@ export const CrashGame: React.FC<CrashGameProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const renderLoopRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const countIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioThrottlerRef = useRef<number>(0);
+
+  // High-performance particle & animation refs
+  const particlesRef = useRef<Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    life: number;
+    maxLife: number;
+    size: number;
+    color: string;
+    isSmoke?: boolean;
+  }>>([]);
+  const starsRef = useRef<Array<{ x: number; y: number; size: number; alpha: number; speed: number }>>([]);
+  const gridOffsetRef = useRef<number>(0);
+  const shockwaveRef = useRef<{ x: number; y: number; radius: number; maxRadius: number } | null>(null);
+  const planePosRef = useRef<{ x: number; y: number; angle: number }>({ x: 35, y: 300, angle: -0.25 });
+  const hasExplodedRef = useRef<boolean>(false);
 
   const chips = [50, 100, 200, 500, 1000, 5000];
 
@@ -202,7 +221,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({
       // Periodically trigger ascending jet hum
       if (time - audioThrottlerRef.current > 150) {
         audioThrottlerRef.current = time;
-        soundService.playJetFlight(currentMulti);
+        soundService.playJetFlight(Number.isFinite(currentMulti) ? Math.max(1, currentMulti) : 1);
       }
 
       if (currentMulti >= point) {
@@ -296,133 +315,358 @@ export const CrashGame: React.FC<CrashGameProps> = ({
     }
   };
 
-  // Canvas Drawing for Aviator Aeroplane
+  // Initialize background starfield once
+  useEffect(() => {
+    const stars = [];
+    for (let i = 0; i < 40; i++) {
+      stars.push({
+        x: Math.random() * 750,
+        y: Math.random() * 360,
+        size: Math.random() * 1.8 + 0.6,
+        alpha: Math.random() * 0.7 + 0.3,
+        speed: Math.random() * 0.4 + 0.1,
+      });
+    }
+    starsRef.current = stars;
+  }, []);
+
+  // Continuous 60fps Particle & Flight Renderer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
+    let isRunning = true;
 
-    ctx.clearRect(0, 0, w, h);
+    const render = () => {
+      if (!isRunning) return;
+      const w = canvas.width;
+      const h = canvas.height;
 
-    // Subtle Runway Grid
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 45) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 35) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
+      ctx.clearRect(0, 0, w, h);
 
-    // Altitude indicator ticks on right edge
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.font = '10px monospace';
-    ctx.fillText('10x -', w - 35, 30);
-    ctx.fillText('5x  -', w - 35, h * 0.4);
-    ctx.fillText('2x  -', w - 35, h * 0.7);
-    ctx.fillText('1x  -', w - 35, h - 15);
+      // 1. Dynamic Space/Sky Background Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      skyGrad.addColorStop(0, '#090d1a');
+      skyGrad.addColorStop(1, '#05070e');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h);
 
-    if (gameState === 'running' || gameState === 'crashed') {
-      const progress = Math.min(1, (multiplier - 1) / Math.max(1, crashPoint * 0.85));
-      const startX = 35;
-      const startY = h - 25;
-      const endX = startX + progress * (w - 110);
-      const endY = startY - Math.pow(progress, 1.25) * (h - 75);
+      // 2. Parallax Drifting Stars
+      const flightSpeed = gameState === 'running' ? Math.min(6, 1 + (multiplier - 1) * 0.8) : 0.5;
+      starsRef.current.forEach((star) => {
+        star.x -= star.speed * flightSpeed;
+        if (star.x < 0) {
+          star.x = w;
+          star.y = Math.random() * h;
+        }
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * (0.6 + Math.sin(Date.now() * 0.003 + star.x) * 0.4)})`;
+        ctx.fill();
+      });
 
-      // Curved Flight Area Fill
-      const fillGrad = ctx.createLinearGradient(startX, startY, endX, endY);
-      if (gameState === 'crashed') {
-        fillGrad.addColorStop(0, 'rgba(220, 38, 38, 0.05)');
-        fillGrad.addColorStop(1, 'rgba(220, 38, 38, 0.6)');
-      } else {
-        fillGrad.addColorStop(0, 'rgba(225, 29, 72, 0.05)');
-        fillGrad.addColorStop(0.7, 'rgba(244, 63, 94, 0.3)');
-        fillGrad.addColorStop(1, 'rgba(244, 63, 94, 0.75)');
+      // 3. Dynamic Moving Runway / Altitude Grid
+      gridOffsetRef.current = (gridOffsetRef.current + flightSpeed * 0.6) % 45;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let x = -gridOffsetRef.current; x < w; x += 45) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 35) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
       }
 
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.quadraticCurveTo(startX + (endX - startX) * 0.45, startY, endX, endY);
-      ctx.lineTo(endX, startY);
-      ctx.closePath();
-      ctx.fillStyle = fillGrad;
-      ctx.fill();
+      // Altitude indicator ticks on right edge
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.font = 'bold 10px monospace';
+      ctx.fillText('10x -', w - 38, 30);
+      ctx.fillText('5x  -', w - 38, h * 0.4);
+      ctx.fillText('2x  -', w - 38, h * 0.7);
+      ctx.fillText('1x  -', w - 38, h - 18);
 
-      // Red Flight Path Line with Glow
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.quadraticCurveTo(startX + (endX - startX) * 0.45, startY, endX, endY);
-      ctx.strokeStyle = gameState === 'crashed' ? '#ef4444' : '#f43f5e';
-      ctx.lineWidth = 4;
-      ctx.shadowColor = gameState === 'crashed' ? '#ef4444' : '#fb7185';
-      ctx.shadowBlur = 12;
-      ctx.stroke();
-      ctx.shadowBlur = 0; // reset
+      if (gameState === 'running' || gameState === 'crashed') {
+        const progress = Math.min(1, (multiplier - 1) / Math.max(1, crashPoint * 0.85));
+        const startX = 35;
+        const startY = h - 25;
+        const endX = startX + progress * (w - 120);
+        const endY = startY - Math.pow(progress, 1.28) * (h - 80);
 
-      // Draw Red Aeroplane or Explosion
-      if (gameState === 'crashed') {
-        ctx.fillStyle = '#ef4444';
-        ctx.font = '32px sans-serif';
-        ctx.fillText('💥', endX - 16, endY + 12);
-      } else {
-        // Dynamic Aeroplane Drawing
-        ctx.save();
-        ctx.translate(endX, endY);
-        // Tilt slightly upwards
-        ctx.rotate(-0.25);
+        // Compute tangent angle of the flight curve
+        const prevProg = Math.max(0, progress - 0.02);
+        const prevX = startX + prevProg * (w - 120);
+        const prevY = startY - Math.pow(prevProg, 1.28) * (h - 80);
+        const tangentAngle = Math.atan2(endY - prevY, endX - prevX);
 
-        // Plane Body (Red Aviator style)
-        ctx.fillStyle = '#e11d48';
+        planePosRef.current = { x: endX, y: endY, angle: tangentAngle };
+
+        // 4. Curved Flight Area Fill
+        const fillGrad = ctx.createLinearGradient(startX, startY, endX, endY);
+        if (gameState === 'crashed') {
+          fillGrad.addColorStop(0, 'rgba(220, 38, 38, 0.02)');
+          fillGrad.addColorStop(1, 'rgba(220, 38, 38, 0.35)');
+        } else {
+          fillGrad.addColorStop(0, 'rgba(244, 63, 94, 0.02)');
+          fillGrad.addColorStop(0.7, 'rgba(244, 63, 94, 0.2)');
+          fillGrad.addColorStop(1, 'rgba(244, 63, 94, 0.55)');
+        }
+
         ctx.beginPath();
-        ctx.ellipse(0, 0, 18, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Cockpit window
-        ctx.fillStyle = '#fecdd3';
-        ctx.beginPath();
-        ctx.ellipse(8, -1, 4, 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Red Main Wing
-        ctx.fillStyle = '#be123c';
-        ctx.beginPath();
-        ctx.moveTo(-4, -2);
-        ctx.lineTo(-8, -12);
-        ctx.lineTo(3, -2);
+        ctx.moveTo(startX, startY);
+        ctx.quadraticCurveTo(startX + (endX - startX) * 0.45, startY, endX, endY);
+        ctx.lineTo(endX, startY);
         ctx.closePath();
+        ctx.fillStyle = fillGrad;
         ctx.fill();
 
-        // Tail Fin
+        // 5. Red Trajectory Flight Path Line with High-Res Glow
         ctx.beginPath();
-        ctx.moveTo(-14, 0);
-        ctx.lineTo(-19, -8);
-        ctx.lineTo(-12, 0);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(startX, startY);
+        ctx.quadraticCurveTo(startX + (endX - startX) * 0.45, startY, endX, endY);
+        ctx.strokeStyle = gameState === 'crashed' ? '#ef4444' : '#f43f5e';
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = gameState === 'crashed' ? '#ef4444' : '#fb7185';
+        ctx.shadowBlur = 14;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
 
-        // Jet Engine Exhaust Flame
-        ctx.fillStyle = '#fbbf24';
-        ctx.beginPath();
-        ctx.moveTo(-18, -2);
-        ctx.lineTo(-26 - Math.random() * 6, 0);
-        ctx.lineTo(-18, 2);
-        ctx.closePath();
-        ctx.fill();
+        // 6. Particle Emission during flight
+        if (gameState === 'running') {
+          hasExplodedRef.current = false;
+          // Calculate exhaust nozzle coordinate behind the plane
+          const nozzleDist = 20;
+          const nozX = endX - Math.cos(tangentAngle) * nozzleDist;
+          const nozY = endY - Math.sin(tangentAngle) * nozzleDist;
 
-        ctx.restore();
+          // Emit fiery afterburner particles
+          for (let i = 0; i < 2; i++) {
+            const spread = (Math.random() - 0.5) * 0.4;
+            const pSpeed = 2 + Math.random() * 4;
+            particlesRef.current.push({
+              x: nozX,
+              y: nozY,
+              vx: -Math.cos(tangentAngle + spread) * pSpeed,
+              vy: -Math.sin(tangentAngle + spread) * pSpeed,
+              life: 0,
+              maxLife: 20 + Math.random() * 15,
+              size: 2.5 + Math.random() * 3,
+              color: Math.random() < 0.6 ? '#FDE047' : '#F97316',
+            });
+          }
+
+          // Emit soft expanding contrail smoke puff
+          if (Math.random() < 0.6) {
+            particlesRef.current.push({
+              x: nozX,
+              y: nozY,
+              vx: -Math.cos(tangentAngle) * 1.5 + (Math.random() - 0.5) * 0.5,
+              vy: -Math.sin(tangentAngle) * 1.5 + (Math.random() - 0.5) * 0.5,
+              life: 0,
+              maxLife: 35 + Math.random() * 20,
+              size: 5 + Math.random() * 6,
+              color: 'rgba(230, 230, 245, 0.4)',
+              isSmoke: true,
+            });
+          }
+        }
+
+        // 7. Explosion Trigger on Crash
+        if (gameState === 'crashed' && !hasExplodedRef.current) {
+          hasExplodedRef.current = true;
+          shockwaveRef.current = { x: endX, y: endY, radius: 2, maxRadius: 90 };
+
+          // Spawn 40 debris fire & spark particles
+          for (let i = 0; i < 40; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 2 + Math.random() * 7;
+            particlesRef.current.push({
+              x: endX,
+              y: endY,
+              vx: Math.cos(ang) * spd,
+              vy: Math.sin(ang) * spd - Math.random() * 2,
+              life: 0,
+              maxLife: 30 + Math.random() * 25,
+              size: 3 + Math.random() * 4,
+              color: Math.random() < 0.5 ? '#EF4444' : Math.random() < 0.8 ? '#F59E0B' : '#FDE047',
+            });
+          }
+        }
+
+        // 8. Update & Draw Shockwave Ring
+        if (shockwaveRef.current) {
+          const sw = shockwaveRef.current;
+          sw.radius += 3.5;
+          const alpha = Math.max(0, 1 - sw.radius / sw.maxRadius);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(239, 68, 68, ${alpha * 0.8})`;
+          ctx.lineWidth = 4 * alpha;
+          ctx.shadowColor = '#EF4444';
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+          ctx.restore();
+
+          if (sw.radius >= sw.maxRadius) {
+            shockwaveRef.current = null;
+          }
+        }
+
+        // 9. Update & Draw All Particles (Smoke & Fire)
+        for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+          const p = particlesRef.current[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.isSmoke) {
+            p.size += 0.25; // Smoke expands
+          } else {
+            p.vy += 0.08; // Gravity on sparks
+          }
+          p.life++;
+
+          const pAlpha = Math.max(0, 1 - p.life / p.maxLife);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = p.isSmoke ? p.color : p.color;
+          ctx.globalAlpha = pAlpha;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = p.isSmoke ? 4 : 8;
+          ctx.fill();
+          ctx.restore();
+
+          if (p.life >= p.maxLife) {
+            particlesRef.current.splice(i, 1);
+          }
+        }
+
+        // 10. Draw Realistic Supersonic Red Jet Airplane
+        if (gameState === 'running') {
+          ctx.save();
+          ctx.translate(endX, endY);
+          ctx.rotate(tangentAngle);
+
+          // Subtle aerodynamic pitch oscillation
+          const pitchBob = Math.sin(Date.now() * 0.008) * 1.2;
+          ctx.translate(0, pitchBob);
+
+          // Afterburner Flame Halo
+          const flameLength = 16 + Math.random() * 10 + Math.min(15, (multiplier - 1) * 3);
+          const flameGrad = ctx.createLinearGradient(0, 0, -flameLength, 0);
+          flameGrad.addColorStop(0, '#FFFFFF');
+          flameGrad.addColorStop(0.3, '#FBBF24');
+          flameGrad.addColorStop(0.7, '#F97316');
+          flameGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+          ctx.beginPath();
+          ctx.moveTo(-16, -3);
+          ctx.lineTo(-16 - flameLength, 0);
+          ctx.lineTo(-16, 3);
+          ctx.closePath();
+          ctx.fillStyle = flameGrad;
+          ctx.shadowColor = '#F59E0B';
+          ctx.shadowBlur = 12;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Main Airplane Body (Red Aviator Fuselage)
+          const bodyGrad = ctx.createLinearGradient(0, -6, 0, 6);
+          bodyGrad.addColorStop(0, '#fb7185');
+          bodyGrad.addColorStop(0.4, '#e11d48');
+          bodyGrad.addColorStop(1, '#9f1239');
+
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 20, 6, 0, 0, Math.PI * 2);
+          ctx.fillStyle = bodyGrad;
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+          ctx.shadowBlur = 6;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Cockpit Tinted Canopy Glass with Specular Shine
+          const canopyGrad = ctx.createLinearGradient(6, -4, 14, 0);
+          canopyGrad.addColorStop(0, '#ffffff');
+          canopyGrad.addColorStop(0.5, '#93c5fd');
+          canopyGrad.addColorStop(1, '#1e3a8a');
+
+          ctx.beginPath();
+          ctx.ellipse(8, -2, 5, 2.8, -0.15, 0, Math.PI * 2);
+          ctx.fillStyle = canopyGrad;
+          ctx.fill();
+
+          // Swept-Back Main Wing
+          ctx.beginPath();
+          ctx.moveTo(-2, -2);
+          ctx.lineTo(-8, -14);
+          ctx.lineTo(4, -2);
+          ctx.closePath();
+          ctx.fillStyle = '#be123c';
+          ctx.fill();
+
+          // Tail Fin
+          ctx.beginPath();
+          ctx.moveTo(-12, 0);
+          ctx.lineTo(-18, -10);
+          ctx.lineTo(-16, 0);
+          ctx.closePath();
+          ctx.fillStyle = '#9f1239';
+          ctx.fill();
+
+          // Flashing Navigation LED Lights (Port = Red, Starboard = Green)
+          const blink = Math.sin(Date.now() * 0.012) > 0;
+          if (blink) {
+            // Wingtip strobe
+            ctx.beginPath();
+            ctx.arc(-8, -14, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#10B981'; // Green starboard
+            ctx.shadowColor = '#10B981';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+
+            // Tail strobe
+            ctx.beginPath();
+            ctx.arc(-18, -10, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#EF4444'; // Red beacon
+            ctx.shadowColor = '#EF4444';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.restore();
+        } else if (gameState === 'crashed') {
+          // Crashed Explosion Icon with Fire Glow
+          ctx.save();
+          ctx.translate(endX, endY);
+          ctx.font = 'bold 36px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#EF4444';
+          ctx.shadowBlur = 25;
+          ctx.fillText('💥', 0, 0);
+          ctx.restore();
+        }
       }
-    }
-  }, [multiplier, gameState, crashPoint]);
+
+      renderLoopRef.current = requestAnimationFrame(render);
+    };
+
+    renderLoopRef.current = requestAnimationFrame(render);
+
+    return () => {
+      isRunning = false;
+      if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
+    };
+  }, [gameState, multiplier, crashPoint]);
 
   // Initial mount
   useEffect(() => {

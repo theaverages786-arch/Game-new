@@ -84,6 +84,7 @@ export const MinesGame: React.FC<MinesGameProps> = ({
   const [lastWinAmount, setLastWinAmount] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [lastRevealedIndex, setLastRevealedIndex] = useState<number | null>(null);
 
   // Provably Fair Transparency
   const [serverSeedHash, setServerSeedHash] = useState<string>('');
@@ -184,6 +185,7 @@ export const MinesGame: React.FC<MinesGameProps> = ({
     setGameOver(false);
     setHasWon(false);
     setLastWinAmount(0);
+    setLastRevealedIndex(null);
 
     try {
       // Call Node.js Backend API
@@ -371,6 +373,7 @@ export const MinesGame: React.FC<MinesGameProps> = ({
     const updatedGrid = [...grid];
     updatedGrid[index] = { ...updatedGrid[index], revealed: true, isMine: false };
 
+    setLastRevealedIndex(index);
     setGrid(updatedGrid);
     setGemsFound(newGems);
     setCurrentMultiplier(newMult);
@@ -906,47 +909,94 @@ export const MinesGame: React.FC<MinesGameProps> = ({
           >
             {grid.map((tile) => {
               const isDisabled = !isPlaying || tile.revealed || gameOver;
+              const isNewlyRevealed = lastRevealedIndex === tile.index;
+
               return (
                 <motion.button
                   key={tile.index}
                   id={`mines-tile-${tile.index}`}
                   disabled={isDisabled}
                   onClick={() => handleTileClick(tile.index)}
-                  whileHover={!isDisabled ? { scale: 1.05 } : {}}
-                  whileTap={!isDisabled ? { scale: 0.95 } : {}}
-                  transition={{ duration: isTurbo ? 0.08 : 0.2 }}
-                  className={`w-full h-full rounded-2xl flex items-center justify-center transition-all select-none relative group cursor-pointer shadow-lg ${
+                  whileHover={!isDisabled ? { scale: 1.05, y: -2 } : {}}
+                  whileTap={!isDisabled ? { scale: 0.94, y: 1 } : {}}
+                  transition={{ duration: isTurbo ? 0.08 : 0.18, ease: 'easeOut' }}
+                  className={`w-full h-full rounded-2xl flex items-center justify-center select-none relative group cursor-pointer shadow-lg overflow-hidden transition-colors ${
                     !tile.revealed
-                      ? 'backdrop-blur-md bg-white/5 border border-white/10 hover:border-amber-400/50 hover:bg-white/10 shadow-slate-950/80'
+                      ? 'bg-gradient-to-b from-slate-800/90 via-slate-850/95 to-slate-950 border border-slate-700/60 hover:border-amber-400/60 shadow-[0_4px_12px_rgba(0,0,0,0.5)]'
                       : tile.isMine
                       ? tile.isTriggeredBomb
-                        ? 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-900 border-2 border-rose-300 shadow-[0_0_20px_rgba(239,68,68,0.8)]'
-                        : 'bg-rose-950/80 border border-rose-700/60 opacity-80'
-                      : 'bg-gradient-to-b from-emerald-600/90 via-teal-700/90 to-slate-900 border-2 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
-                  } ${isDisabled && !tile.revealed ? 'opacity-80 cursor-not-allowed' : ''}`}
+                        ? 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-950 border-2 border-rose-300 shadow-[0_0_25px_rgba(239,68,68,0.9)]'
+                        : 'bg-gradient-to-b from-rose-950/90 to-slate-950 border border-rose-800/60 opacity-80'
+                      : 'bg-gradient-to-b from-emerald-500/25 via-teal-700/40 to-slate-950 border-2 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                  } ${isDisabled && !tile.revealed ? 'opacity-85 cursor-not-allowed' : ''}`}
                 >
+                  {/* Subtle top edge glossy specular bevel */}
+                  {!tile.revealed && (
+                    <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+                  )}
+
+                  {/* Floating multiplier pill popup on newly uncovered safe diamond */}
+                  {tile.revealed && !tile.isMine && isNewlyRevealed && (
+                    <motion.div
+                      initial={{ y: 0, opacity: 1, scale: 0.8 }}
+                      animate={{ y: -26, opacity: 0, scale: 1.15 }}
+                      transition={{ duration: 0.75, ease: 'easeOut' }}
+                      className="absolute z-20 pointer-events-none font-black font-mono text-[11px] text-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,1)] bg-slate-950/80 px-1.5 py-0.5 rounded-md border border-emerald-400/50"
+                    >
+                      +{currentMultiplier.toFixed(2)}×
+                    </motion.div>
+                  )}
+
+                  {/* Revealed Content with 3D Pop & Spin */}
                   {tile.revealed && (
                     <motion.div
-                      initial={{ scale: 0.2, rotateY: 180 }}
-                      animate={{ scale: 1, rotateY: 0 }}
-                      transition={{ duration: isTurbo ? 0.12 : 0.35, ease: 'easeOut' }}
+                      initial={{ scale: 0.15, rotateY: 180, rotateZ: tile.isMine ? -25 : 25 }}
+                      animate={{ scale: 1, rotateY: 0, rotateZ: 0 }}
+                      transition={{ 
+                        type: 'spring', 
+                        stiffness: isTurbo ? 600 : 380, 
+                        damping: isTurbo ? 25 : 20 
+                      }}
+                      className="relative flex items-center justify-center"
                     >
                       {tile.isMine ? (
-                        <Bomb
-                          className={`w-7 h-7 sm:w-8 sm:h-8 ${
-                            tile.isTriggeredBomb
-                              ? 'text-white drop-shadow-[0_0_15px_rgba(239,68,68,1)] animate-pulse'
-                              : 'text-rose-400'
-                          }`}
-                        />
+                        <div className="relative">
+                          {tile.isTriggeredBomb && (
+                            <motion.div
+                              initial={{ scale: 0.5, opacity: 0.9 }}
+                              animate={{ scale: 2.2, opacity: 0 }}
+                              transition={{ duration: 0.6, ease: 'easeOut' }}
+                              className="absolute -inset-2 bg-rose-500 rounded-full blur-md"
+                            />
+                          )}
+                          <Bomb
+                            className={`w-7 h-7 sm:w-8 sm:h-8 relative z-10 ${
+                              tile.isTriggeredBomb
+                                ? 'text-white drop-shadow-[0_0_18px_rgba(239,68,68,1)] animate-bounce'
+                                : 'text-rose-400'
+                            }`}
+                          />
+                        </div>
                       ) : (
-                        <Diamond className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-300 drop-shadow-[0_0_15px_rgba(16,185,129,0.9)]" />
+                        <div className="relative">
+                          {/* Diamond Crystalline Halo */}
+                          <motion.div
+                            initial={{ scale: 0.7, opacity: 0.8 }}
+                            animate={{ scale: 1.4, opacity: 0 }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="absolute -inset-1 bg-emerald-400 rounded-full blur-sm"
+                          />
+                          <Diamond className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-300 drop-shadow-[0_0_16px_rgba(16,185,129,0.9)]" />
+                        </div>
                       )}
                     </motion.div>
                   )}
 
+                  {/* Unrevealed Center Tactile Pip */}
                   {!tile.revealed && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-white/20 group-hover:bg-amber-400/60 transition shadow-inner" />
+                    <div className="flex flex-col items-center justify-center gap-0.5">
+                      <div className="w-2.5 h-2.5 rounded-sm rotate-45 bg-gradient-to-br from-slate-400/40 to-slate-600/20 group-hover:from-amber-400 group-hover:to-yellow-500 group-hover:shadow-[0_0_10px_rgba(245,158,11,0.6)] transition-all duration-200" />
+                    </div>
                   )}
                 </motion.button>
               );

@@ -118,7 +118,7 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
     {
       id: 4,
       title: 'INVITATION BONUS UP TO 3.0%',
-      subtitle: 'Daily commission rebate on all turnover - Share code 193623200',
+      subtitle: 'Daily commission rebate on all turnover - Share code 8khvdc',
       tag: 'AGENT 3%',
       gradient: 'from-[#734309] via-[#8c520a] to-[#452703]',
       badge: '3.0% Daily',
@@ -209,7 +209,7 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
         </span>
         <div className="overflow-hidden whitespace-nowrap w-full text-slate-300 text-[11px]">
           <div className="inline-block animate-marquee">
-            📢 Welcome to P999! Daily recharge bonus up to Rs 99,999 next day! JazzCash &amp; EasyPaisa auto deposit instant credited in 10 seconds. Certified 999/JAZ gaming platform.
+            📢 Welcome to 777 P999! Download Official APK (777p999.com/?dl=8khvdc) &amp; get Rs 999 Bonus! JazzCash &amp; EasyPaisa instant auto deposits in 10s. Player 8***92 just cashed out Rs 85,000 on Aviator!
           </div>
         </div>
       </div>
@@ -1739,9 +1739,24 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 12. FLOATING ACTION WIDGETS (Red Envelope, Spin Wheel, WhatsApp, App Download) */}
+      {/* 12. FLOATING ACTION WIDGETS (APK Download, Red Envelope, Spin Wheel, WhatsApp, Scroll Top) */}
       {/* ========================================================================= */}
       <div className="fixed right-3 bottom-24 z-30 flex flex-col gap-2 pointer-events-auto">
+        {/* Floating Download APK Button with 8khvdc Ref badge */}
+        <button
+          onClick={() => {
+            soundService.playClick();
+            if (onOpenDownload) onOpenDownload();
+          }}
+          className="relative group p-2 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-2xl hover:scale-110 transition cursor-pointer border border-emerald-300 animate-pulse"
+          title="Download 777 P999 APK"
+        >
+          <span className="text-2xl">📲</span>
+          <span className="absolute -top-2 -left-2 bg-amber-400 text-slate-950 text-[8px] font-black px-1.5 py-0.2 rounded-full shadow">
+            APK
+          </span>
+        </button>
+
         {/* Floating Spin Wheel */}
         <button
           onClick={() => {
@@ -1883,14 +1898,14 @@ export const LobbyTab: React.FC<LobbyTabProps> = ({
           </div>
         </div>
 
-        {/* P999 Disclaimer Paragraph */}
+        {/* 777 P999 Disclaimer Paragraph */}
         <p className="text-[10px] text-slate-500 leading-relaxed text-center sm:text-left">
-          P999 Group is one of the most famous international online casino operators, providing exciting entertainment options including slots, live casino, sports betting, cards, fishing, and multiplier crash games under certified gaming license 999/JAZ.
+          777 P999 Group is one of the most famous international online casino operators, providing exciting entertainment options including slots, live casino, sports betting, cards, fishing, and multiplier crash games under certified gaming license 999/JAZ.
         </p>
 
         {/* Copyright */}
         <div className="text-center text-[10px] text-slate-500 pt-2 border-t border-slate-800/80">
-          P999.com | @Copyright 2002-2026 P999. All Rights Reserved.
+          777p999.com (Ref: 8khvdc) | @Copyright 2002-2026 777 P999. All Rights Reserved.
         </div>
       </footer>
     </div>

@@ -60,8 +60,8 @@ const PROMO_EVENTS: PromoItem[] = [
     typeFilter: 'cooperate',
     rewardAmount: 200,
     content: [
-      'Event Object: All registered P999 members',
-      'Event Condition: Invite friends to register through your promotion link and make a deposit of Rs 100+.',
+      'Event Object: All registered 777 P999 members',
+      'Event Condition: Invite friends to register through your promotion link (dl=8khvdc) and make a deposit of Rs 100+.',
       'Daily reward: Earn Rs 200 extra bonus per valid invite every day.',
       'Automatic settlement: Transferred to your balance at 00:00 every night.',
     ],
